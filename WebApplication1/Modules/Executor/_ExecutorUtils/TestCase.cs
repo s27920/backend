@@ -1,4 +1,4 @@
-namespace WebApplication17.Executor;
+namespace WebApplication1.Modules.Executor._ExecutorUtils;
 
 public class TestCase(string testInput, string expectedOutput)
 {

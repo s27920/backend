@@ -1,7 +1,7 @@
-using WebApplication17.Analyzer._AnalyzerUtils;
-using WebApplication17.Analyzer.AstBuilder;
+using WebApplication1.Modules.Analyzer._AnalyzerUtils;
+using WebApplication1.Modules.Analyzer.AstBuilder;
 
-namespace WebApplication17.Analyzer.AstAnalyzer;
+namespace WebApplication1.Modules.Analyzer.AstAnalyzer;
 
 public interface IAnalyzer
 {

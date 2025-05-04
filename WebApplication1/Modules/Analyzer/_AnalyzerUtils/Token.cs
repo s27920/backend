@@ -1,5 +1,5 @@
 
-namespace WebApplication17.Analyzer._AnalyzerUtils;
+namespace WebApplication1.Modules.Analyzer._AnalyzerUtils;
 
 public class Token(TokenType type, int filePos , string? value = null)
 {

@@ -3,10 +3,11 @@ using System.Text;
 using Microsoft.Win32.SafeHandles;
 using Polly;
 using Polly.Timeout;
-using WebApplication17.Analyzer._AnalyzerUtils;
-using WebApplication17.Analyzer.AstAnalyzer;
+using WebApplication1.Modules.Analyzer._AnalyzerUtils;
+using WebApplication1.Modules.Analyzer.AstAnalyzer;
+using WebApplication1.Modules.Executor._ExecutorUtils;
 
-namespace WebApplication17.Executor;
+namespace WebApplication1.Modules.Executor;
 
 public interface IExecutorService
 {

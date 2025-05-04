@@ -1,4 +1,4 @@
-namespace WebApplication17.Executor;
+namespace WebApplication1.Modules.Executor._ExecutorUtils;
 
 public class SrcFileData(Guid guid, string lang, string funcName)
 {
