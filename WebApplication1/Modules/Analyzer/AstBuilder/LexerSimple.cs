@@ -1,7 +1,7 @@
 using System.Text;
-using WebApplication17.Analyzer._AnalyzerUtils;
+using WebApplication1.Modules.Analyzer._AnalyzerUtils;
 
-namespace WebApplication17.Analyzer.AstBuilder;
+namespace WebApplication1.Modules.Analyzer.AstBuilder;
 
 public interface ILexer
 {

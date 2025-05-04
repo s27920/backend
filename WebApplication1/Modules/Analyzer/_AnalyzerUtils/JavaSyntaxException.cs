@@ -1,3 +1,3 @@
-namespace WebApplication17.Analyzer._AnalyzerUtils;
+namespace WebApplication1.Modules.Analyzer._AnalyzerUtils;
 
 public class JavaSyntaxException(string? message) : Exception(message); //error mainly for debugging as the end user will get standard java error messages either way 

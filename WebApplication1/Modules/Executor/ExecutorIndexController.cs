@@ -1,6 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
 
-namespace WebApplication17.Executor;
+namespace WebApplication1.Modules.Executor;
 
 [ApiController]
 [Route("/")]

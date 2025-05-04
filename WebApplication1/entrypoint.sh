@@ -7,4 +7,4 @@ while ! docker info > /dev/null 2>&1; do
 done
 echo "daemon active"
 
-exec dotnet WebApplication17.dll
+exec dotnet WebApplication1.dll

@@ -1,4 +1,4 @@
-namespace WebApplication17.Analyzer._AnalyzerUtils;
+namespace WebApplication1.Modules.Analyzer._AnalyzerUtils;
 
 public enum TokenType
 {
