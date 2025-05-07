@@ -14,7 +14,7 @@ public enum TokenType
 
     Byte, Short, Int, Long, Float, Double, Char, Boolean, String /*No string in future*/, Void /*Special*/, 
 
-    FloatLit, DoubleLit, CharLit, BooleanLit, IntLit, LongLit, ShortLit, ByteLit,
+    FloatLit, DoubleLit, CharLit, BooleanLit, IntLit, LongLit, StringLit,
     
     Static, Final,
     

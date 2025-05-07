@@ -66,6 +66,12 @@ public class LexerSimple : ILexer
                 case ',':
                     _tokens.Add(CreateToken(TokenType.Comma));
                     break;
+                case '"':
+                    _tokens.Add(ConsumeStringLit());
+                    break;
+                case '\'':
+                    _tokens.Add(ConsumeCharLit());
+                    break;
                     
                 default:
                     if (Char.IsLetter(consumedChar))
@@ -156,6 +162,37 @@ public class LexerSimple : ILexer
         {
             ConsumeChar(); //consume '/'
         }
+    }
+    
+    private Token ConsumeStringLit()
+    {
+        ConsumeChar();
+        
+        StringBuilder stringLit = new StringBuilder();
+        // check if this doesn't break if a file begins with '"' illegal statement so shouldn't pass either way but not because of a ArrayIndexOutOfBoundsException
+        // which might get thrown. PeekChar should handle it but best to check
+        while (!(CheckForChar('"') && CheckForChar('\\', -1))) 
+        {
+            stringLit.Append(ConsumeChar());
+        }
+
+        ConsumeChar(); // close string lit
+        return CreateToken(TokenType.StringLit, stringLit.ToString());
+    }
+
+    private Token ConsumeCharLit()
+    {
+        ConsumeChar(); // consume opening ' 
+        StringBuilder charLit = new StringBuilder();
+
+        // same case as in ConsumeStringLit()
+        while (!(CheckForChar('\'') && CheckForChar('\\', -1)))
+        {
+            charLit.Append(ConsumeChar());
+        }
+
+        ConsumeChar(); // consume closing '
+        return CreateToken(TokenType.CharLit, charLit.ToString());
     }
 
     private bool CheckForChar(char checkedChar, int offset = 0)
