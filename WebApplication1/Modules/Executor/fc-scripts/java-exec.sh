@@ -39,9 +39,6 @@ if [ $? -eq 137 ]; then
     echo "timed out"
 fi
 
-cat firecracker.log
-
-
 echo "firecracker exit"
 
 rm -f "$SOCK_PATH" "$CONFIG_FILE"
