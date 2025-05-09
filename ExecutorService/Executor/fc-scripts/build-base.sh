@@ -1,8 +1,5 @@
 #!/bin/bash
 
-#mkdir -p root-testing
-#cd root-testing
-
 rm -rf my-rootfs-base
 rm -rf rootfs-base.ext4
 
@@ -66,8 +63,6 @@ StandardOutput=journal+console
 WantedBy=multi-user.target
 
 INNER_EOF
-
-
 
 apt clean
 rm -rf /var/lib/apt/lists/*

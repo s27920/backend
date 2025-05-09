@@ -64,9 +64,11 @@ public class ExecutorService(IExecutorRepository executorRepository, IExecutorCo
     private async Task<ExecuteResultDto> Exec(SrcFileData srcFileData)
     {
         
-        var execProcess = new Process()
+        
+        
+        var execProcess = new Process
         {
-            StartInfo = new ProcessStartInfo()
+            StartInfo = new ProcessStartInfo
             {
                 FileName = "/bin/sh",
                 Arguments = $"\"./scripts/deploy-executor-container.sh\" \"{srcFileData.Lang}\" \"{srcFileData.Guid.ToString()}\" \"{_codeAnalysisResult!.MainClassName}\"", //never actually gonna be null which is why I threw that ! in
@@ -76,6 +78,8 @@ public class ExecutorService(IExecutorRepository executorRepository, IExecutorCo
                 CreateNoWindow = true
             }
         };
+        
+        
 
         execProcess.Start();
         
@@ -115,10 +119,7 @@ public class ExecutorService(IExecutorRepository executorRepository, IExecutorCo
 
         foreach (var testCase in testCases)
         {
-            // string comparingStatement = "System.out.println(\"hello from comparer\");\n";/*[DEBUG]*/
-            // string comparingStatement = "System.out.println(gson.toJson(\"hello from comparer\"));\n"; /*[DEBUG]*/
-            string comparingStatement =
-                $"System.out.println(gson.toJson({testCase.ExpectedOutput}).equals(gson.toJson(sortIntArr({testCase.TestInput}))));\n";
+            string comparingStatement = $"System.out.println(gson.toJson({testCase.ExpectedOutput}).equals(gson.toJson(sortIntArr({testCase.TestInput}))));\n";
             testCaseInsertBuilder.Append(comparingStatement);
         }
         

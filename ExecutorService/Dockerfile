@@ -6,21 +6,23 @@ EXPOSE 1337
 FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build
 ARG BUILD_CONFIGURATION=Release
 WORKDIR /src
-COPY ["Executor/Executor.csproj", "Executor/"]
-RUN dotnet restore "Executor/Executor.csproj"
-COPY . .
-WORKDIR "/src/Executor"
-RUN dotnet build "Executor.csproj" -c $BUILD_CONFIGURATION -o /app/build
+COPY ["./ExecutorService.csproj", "ExecutorService/"]
+RUN dotnet restore "ExecutorService/ExecutorService.csproj"
+COPY . "ExecutorService/"
+WORKDIR "/src/ExecutorService"
+RUN dotnet build "ExecutorService.csproj" -c $BUILD_CONFIGURATION -o /app/build
 
 FROM build AS publish
 ARG BUILD_CONFIGURATION=Release
-RUN dotnet publish "Executor.csproj" -c $BUILD_CONFIGURATION -o /app/publish /p:UseAppHost=false
+RUN dotnet publish "ExecutorService.csproj" -c $BUILD_CONFIGURATION -o /app/publish /p:UseAppHost=false
 
 FROM base AS final
+USER root
 WORKDIR /app
 COPY --from=publish /app/publish .
 
-RUN sudo apt-get update \
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends \
     curl \
     wget \
     unzip \
@@ -32,11 +34,17 @@ RUN sudo apt-get update \
     qemu-utils \
     qemu-kvm \
     libvirt-daemon-system \
-    libvirt-clients &&\
-    wget https://github.com/firecracker-microvm/firecracker/releases/download/v1.2.0/firecracker-v1.2.0-x86_64.tgz &&\
-    tar -xvf firecracker-v1.2.0-x86_64.tgz &&\
-    sudo mv firecracker-v1.2.0-x86_64 /usr/local/bin/firecracker &&\
-    wget https://s3.amazonaws.com/spec.ccfc.min/img/quickstart_guide/x86_64/kernels/vmlinux.bin -O ~/firecracker/vmlinux.bin && \
-    curl -L https://github.com/firecracker-microvm/firecracker/releases/download/${latest}/firecracker-$(basename $(curl -fsSLI -o /dev/null -w  %{url_effective} ${release_url}/latest))-$(uname -m).tgz | tar -xz
+    libvirt-clients && \
+    FC_VERSION="v1.2.0" && \
+    curl -LO "https://github.com/firecracker-microvm/firecracker/releases/download/${FC_VERSION}/firecracker-${FC_VERSION}-$(uname -m).tgz" && \
+    tar -xzf "firecracker-${FC_VERSION}-$(uname -m).tgz" && \
+    mv "firecracker-${FC_VERSION}-$(uname -m)/firecracker" /usr/local/bin/ && \
+    mv "firecracker-${FC_VERSION}-$(uname -m)/jailer" /usr/local/bin/ && \
+    apt-get clean && \
+    rm -rf "firecracker-${FC_VERSION}-$(uname -m)" \
+    rm -rf /var/lib/apt/lists/*
 
-ENTRYPOINT ["dotnet", "Executor.dll"]
+USER $APP_UID
+ENTRYPOINT ["dotnet", "ExecutorService.dll"]
+    
+ENTRYPOINT ["dotnet", "ExecutorService.dll"]
