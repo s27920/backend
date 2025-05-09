@@ -1,24 +1,19 @@
 #!/bin/bash
 
-CODE=$(cat $2)
-
-rm -rf my-rootfs
-
-mkdir -p my-rootfs
-
-sudo cp --reflink=auto rootfs-base.ext4 rootfs.ext4
-
-sudo mount rootfs.ext4 my-rootfs
-
-cd my-rootfs
-
-CURR_DIR=$(pwd)
-
-echo $CURR_DIR
-
 CLASSNAME=$1
+CODE=$(cat "$2")
+EXEC_ID=$3
 
-cat > "$CURR_DIR/sandbox/run.sh" << EOF
+ROOTFS_DIR="/tmp/$EXEC_ID-rootfs"
+ROOTFS="/tmp/$EXEC_ID-rootfs.ext4"
+
+mkdir -p "$ROOTFS_DIR"
+
+sudo cp --reflink=auto "/fc-scripts/rootfs-base.ext4" "$ROOTFS"
+
+sudo mount "$ROOTFS" "$ROOTFS_DIR"
+
+cat > "$ROOTFS_DIR/sandbox/run.sh" << EOF
 #!/bin/bash
 
 cd /sandbox
@@ -30,17 +25,11 @@ sync
 
 echo 1 > /proc/sys/kernel/sysrq
 echo c > /proc/sysrq-trigger
-#poweroff
 
 EOF
 
-echo $CODE > "$CURR_DIR/sandbox/$CLASSNAME.java"
+echo "$CODE" > "$ROOTFS_DIR/sandbox/$CLASSNAME.java"
 
-sudo chmod a-w "$CURR_DIR/sandbox/run.sh"
-sudo chmod a+x "$CURR_DIR/sandbox/run.sh"
-
-cd ..
-
-sudo umount my-rootfs
-
-echo "built copy image"
+sudo chmod a-w "$ROOTFS_DIR/sandbox/run.sh"
+sudo chmod a+x "$ROOTFS_DIR/sandbox/run.sh"
+sudo umount "$ROOTFS_DIR"

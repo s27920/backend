@@ -1,15 +1,11 @@
 #!/bin/bash
 
-EXEC_ID=$(uuidgen | cut -d'-' -f1)
+EXEC_ID=$1
 
-KERNEL_PATH="/home/janek/firecracker/vmlinux.bin"
-
-CURR_DIR=$(pwd)
-
-CONFIG_FILE="$CURR_DIR/vm_config-$EXEC_ID.json"
-SOCK_PATH="$CURR_DIR/firecracker-${EXEC_ID}.socket"
-
-ROOTFS="$CURR_DIR/rootfs.ext4"
+ROOTFS="/tmp/$EXEC_ID-rootfs.ext4"
+KERNEL_PATH="/app/fc-scripts/vmlinux.bin"
+CONFIG_FILE="/tmp/vm_config-$EXEC_ID.json"
+SOCK_PATH="/tmp/firecracker-${EXEC_ID}.socket"
 
 cat > "$CONFIG_FILE" << EOF
 {
@@ -33,7 +29,7 @@ cat > "$CONFIG_FILE" << EOF
 }
 EOF
 
-firecracker --api-sock "$SOCK_PATH" --config-file "$CONFIG_FILE"
+timeout -s SIGKILL 30s firecracker-v1.2.0-x86_64 --api-sock "$SOCK_PATH" --config-file "$CONFIG_FILE"
 
 if [ $? -eq 137 ]; then
     echo "timed out"

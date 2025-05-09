@@ -23,6 +23,7 @@ COPY --from=publish /app/publish .
 
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
+    debootstrap \
     curl \
     wget \
     unzip \
@@ -30,21 +31,23 @@ RUN apt-get update && \
     gcc \
     make \
     build-essential \
-    linux-headers-$(uname -r) \
+    linux-headers-amd64 \
     qemu-utils \
     qemu-kvm \
     libvirt-daemon-system \
     libvirt-clients && \
-    FC_VERSION="v1.2.0" && \
-    curl -LO "https://github.com/firecracker-microvm/firecracker/releases/download/${FC_VERSION}/firecracker-${FC_VERSION}-$(uname -m).tgz" && \
-    tar -xzf "firecracker-${FC_VERSION}-$(uname -m).tgz" && \
-    mv "firecracker-${FC_VERSION}-$(uname -m)/firecracker" /usr/local/bin/ && \
-    mv "firecracker-${FC_VERSION}-$(uname -m)/jailer" /usr/local/bin/ && \
+    wget https://github.com/firecracker-microvm/firecracker/releases/download/v1.2.0/firecracker-v1.2.0-x86_64.tgz && \
+    tar -xvf firecracker-v1.2.0-x86_64.tgz && \
+    mv release-v1.2.0-x86_64/firecracker-v1.2.0-x86_64 /usr/local/bin/ && \
     apt-get clean && \
-    rm -rf "firecracker-${FC_VERSION}-$(uname -m)" \
-    rm -rf /var/lib/apt/lists/*
+    rm -rf firecracker-v1.2.0-x86_64.tgz && \
+    rm -rf /var/lib/apt/lists/* && \
+    rm -rf release-v1.2.0-x86_64 && \
+    echo '/usr/local/bin/firecracker-v1.2.0-x86_64' >> ~/.bashrc
+
+COPY Executor/fc-scripts fc-scripts
+COPY Executor/client-src client-src
 
 USER $APP_UID
-ENTRYPOINT ["dotnet", "ExecutorService.dll"]
-    
+
 ENTRYPOINT ["dotnet", "ExecutorService.dll"]

@@ -17,7 +17,7 @@ sudo mount -t sysfs sys my-rootfs-base/sys
 sudo mount -o bind /dev my-rootfs-base/dev
 sudo mount -o bind /dev/pts my-rootfs-base/dev/pts
 
-cd my-rootfs-base
+cd my-rootfs-base || exit 1
 
 CURR_DIR=$(pwd)
 
