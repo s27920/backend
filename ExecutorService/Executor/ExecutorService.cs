@@ -3,8 +3,6 @@ using System.Text;
 using ExecutorService.Analyzer._AnalyzerUtils;
 using ExecutorService.Analyzer.AstAnalyzer;
 using ExecutorService.Executor._ExecutorUtils;
-using Microsoft.AspNetCore.Mvc.ModelBinding;
-using Microsoft.Win32.SafeHandles;
 
 namespace ExecutorService.Executor;
 
@@ -15,8 +13,6 @@ public interface IExecutorService
 }
 
 
-
-//TODO could clean up (meaning cut down on) some of the file handling, a bit too much of it going on
 public class ExecutorService(IExecutorRepository executorRepository, IExecutorConfig executorConfig) : IExecutorService
 {
     private const string JavaImport = "import com.google.gson.Gson;\n\n"; //TODO this is temporary, not the gson but the way it's imported
@@ -31,7 +27,7 @@ public class ExecutorService(IExecutorRepository executorRepository, IExecutorCo
         {
             lang = CheckLanguageSupported(executeRequestDto.Lang);
         }
-        catch (InvalidOperationException e)
+        catch (InvalidOperationException)
         {
             return new ExecuteResultDto("", "Err: unsupported language");
         }
@@ -79,9 +75,9 @@ public class ExecutorService(IExecutorRepository executorRepository, IExecutorCo
         return await Exec(fileData);
     }
 
-    private async Task<ExecuteResultDto> Exec(SrcFileData srcFileData)
+    private async Task<ExecuteResultDto> Exec(UserSolutionData userSolutionData)
     {
-        byte[] codeBytes = Encoding.UTF8.GetBytes(srcFileData.FileContents.ToString());
+        byte[] codeBytes = Encoding.UTF8.GetBytes(userSolutionData.FileContents.ToString());
         string codeB64 = Convert.ToBase64String(codeBytes);
         
         var buildProcess = new Process
@@ -89,7 +85,7 @@ public class ExecutorService(IExecutorRepository executorRepository, IExecutorCo
             StartInfo = new ProcessStartInfo
             {
                 FileName = "/bin/bash",
-                Arguments = $"/app/fc-scripts/build-copy.sh {_codeAnalysisResult!.MainClassName} {codeB64} {srcFileData.Guid}", 
+                Arguments = $"/app/fc-scripts/build-copy.sh {_codeAnalysisResult!.MainClassName} {codeB64} {userSolutionData.Guid}", 
                 RedirectStandardError = true,
                 RedirectStandardOutput = true,
                 RedirectStandardInput = true,
@@ -106,7 +102,7 @@ public class ExecutorService(IExecutorRepository executorRepository, IExecutorCo
             StartInfo = new ProcessStartInfo
             {
                 FileName = "/bin/bash",
-                Arguments = $"/app/fc-scripts/java-exec.sh {srcFileData.Guid}",
+                Arguments = $"/app/fc-scripts/java-exec.sh {userSolutionData.Guid}",
                 RedirectStandardError = true,
                 RedirectStandardOutput = true,
                 RedirectStandardInput = true,
@@ -123,21 +119,21 @@ public class ExecutorService(IExecutorRepository executorRepository, IExecutorCo
         return new ExecuteResultDto(output, error);
     }
 
-    private async Task<SrcFileData> PrepareFile(string codeB64, Language lang, string exerciseId) //TODO Make the import not constant
+    private async Task<UserSolutionData> PrepareFile(string codeB64, Language lang, string exerciseId) //TODO Make the import not constant
     {
         byte[] codeBytes = Convert.FromBase64String(codeB64);
         string codeString = Encoding.UTF8.GetString(codeBytes);
 
         StringBuilder code = new StringBuilder(codeString);
         
-        var fileData = new SrcFileData(Guid.NewGuid(), lang, await executorRepository.GetFuncName(), code);
+        var fileData = new UserSolutionData(Guid.NewGuid(), lang, await executorRepository.GetFuncName(), code, exerciseId);
 
         code.Insert(0, JavaImport);
         
         return fileData;
     }
 
-    private async Task InsertTestCases(SrcFileData srcFileData, int writeOffset)
+    private async Task InsertTestCases(UserSolutionData userSolutionData, int writeOffset)
     {
         TestCase[] testCases = await executorRepository.GetTestCasesAsync();
         
@@ -150,7 +146,7 @@ public class ExecutorService(IExecutorRepository executorRepository, IExecutorCo
             testCaseInsertBuilder.Append(comparingStatement);
         }
         
-        srcFileData.FileContents.Insert(writeOffset, testCaseInsertBuilder);
+        userSolutionData.FileContents.Insert(writeOffset, testCaseInsertBuilder);
     }
 
     private Language CheckLanguageSupported(string lang)

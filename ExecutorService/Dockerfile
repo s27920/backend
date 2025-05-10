@@ -21,6 +21,8 @@ USER root
 WORKDIR /app
 COPY --from=publish /app/publish .
 
+COPY Executor/fc-scripts fc-scripts
+
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
     debootstrap \
@@ -46,12 +48,10 @@ RUN apt-get update && \
     rm -rf firecracker-v1.2.0-x86_64.tgz && \
     rm -rf /var/lib/apt/lists/* && \
     rm -rf release-v1.2.0-x86_64 && \
-    echo '/usr/local/bin/firecracker-v1.2.0-x86_64' >> ~/.bashrc
-
-
-COPY Executor/fc-scripts fc-scripts
-COPY Executor/client-src client-src
-
-RUN chmod +x fc-scripts/build-copy.sh && chmod +x fc-scripts/java-exec.sh
+    echo '/usr/local/bin/firecracker-v1.2.0-x86_64' >> ~/.bashrc && \
+    chmod +x fc-scripts/build-copy.sh && \
+    chmod +x fc-scripts/java-exec.sh && \
+    chmod +x fc-scripts/build-base.sh 
+# it is ill advised to attempt to run build-base.sh on the container, instead execute on host and copy pre-made base filesystem image
 
 ENTRYPOINT ["dotnet", "ExecutorService.dll"]
