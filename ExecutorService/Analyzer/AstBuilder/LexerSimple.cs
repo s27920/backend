@@ -72,9 +72,15 @@ public class LexerSimple : ILexer
                 case '\'':
                     _tokens.Add(ConsumeCharLit());
                     break;
-                    
+                case '-':
+                    _tokens.Add(CreateToken(TokenType.Minus));
+                    break;
                 default:
-                    if (Char.IsLetter(consumedChar))
+                    if (Char.IsNumber(consumedChar))
+                    {
+                        _tokens.Add(ConsumeNumericLit(consumedChar));
+                    }
+                    else if (Char.IsLetter(consumedChar))
                     {
                         _buf.Append(consumedChar);
                         _tokens.Add(ConsumeKeyword(_buf));
@@ -88,7 +94,16 @@ public class LexerSimple : ILexer
 
         // foreach (var tok in _tokens)
         // {
-            // Console.WriteLine(tok.Type);
+        //     Console.Write(tok.Type);
+        //     if (tok.Value is not null)
+        //     {
+        //         Console.WriteLine($": {tok.Value}");
+        //     }
+        //     else
+        //     {
+        //         Console.WriteLine();
+        //     }
+        //     
         // }
         return _tokens;
     }
@@ -130,15 +145,15 @@ public class LexerSimple : ILexer
 
     private void ConsumeComment()
     {
-        ConsumeChar(); //consume '/'
-        ConsumeChar(); //consume '/'
+        ConsumeChar(); // consume '/'
+        ConsumeChar(); // consume '/'
         while (PeekChar() != null && !(CheckForChar('\n') || CheckForChar('\r')))
         {
             ConsumeChar();
         }
 
-        ConsumeChar(); // //consume '\n' or '\r'
-        if (CheckForChar('\n')) //for windows
+        ConsumeChar(); // consume '\n' or '\r'
+        if (CheckForChar('\n')) // for windows
         {
             ConsumeChar(); 
         }
@@ -146,8 +161,8 @@ public class LexerSimple : ILexer
 
     private void ConsumeMultiLineComment()
     {
-        ConsumeChar(); //consume '/'
-        ConsumeChar(); //consume '/*'
+        ConsumeChar(); // consume '/'
+        ConsumeChar(); // consume '/*'
         
         while (PeekChar() != null && !(CheckForChar('*') && CheckForChar('/', 1)))
         {
@@ -156,22 +171,172 @@ public class LexerSimple : ILexer
 
         if (PeekChar() is not null)
         {
-            ConsumeChar(); //consume '*'
+            ConsumeChar(); // consume '*'
         }
         if (PeekChar() is not null)
         {
-            ConsumeChar(); //consume '/'
+            ConsumeChar(); // consume '/'
         }
     }
     
+private Token ConsumeNumericLit(char prevChar) // TODO needs cleaning up, bit of a monstrosity atm
+    {
+        StringBuilder numLit = new StringBuilder();
+        if (CheckForChar('-'))
+        {
+            numLit.Append(ConsumeChar());
+        }
+
+        char peekedLitTypeChar = prevChar; // if 0 then either octal, bin or hex decimal
+        char? peekedLitValStartChar = PeekChar(); // first numeric value of literal
+        if (peekedLitTypeChar is '0' && peekedLitValStartChar.HasValue)
+        {
+
+            numLit.Append(prevChar);
+            switch (peekedLitValStartChar.Value)
+            {
+                case 'b':
+                case 'B':
+                    numLit.Append(ConsumeChar());
+                    numLit.Append(ConsumeBin());
+                    break;
+                case 'x':
+                case 'X':
+                    numLit.Append(ConsumeChar());
+                    numLit.Append(ConsumeHex());
+                    if (CheckForChar('.'))
+                    {
+                        numLit.Append(ConsumeChar());
+                        numLit.Append(ConsumeHex());
+                    }
+                    
+                    if (CheckForChar('p'))
+                    {
+                        numLit.Append(ConsumeChar());
+                        if (CheckForChar('-')) // todo make consumeIfOfType()
+                        {
+                            numLit.Append(ConsumeChar());
+                        }
+                        numLit.Append(ConsumeDec());
+                        if (CheckForChar('.'))
+                        {
+                            numLit.Append(ConsumeChar());
+                            numLit.Append(ConsumeDec());
+                        }
+                        if (CheckForChar('f') || CheckForChar('F')) // todo use toLowerCase() here, just don't know in what context as CheckForCharProbably shouldn't auto lowercase, perhaps separate method? 
+                        {
+                            ConsumeChar();
+                            return CreateToken(TokenType.FloatLit, numLit.ToString());
+                        }
+                        return CreateToken(TokenType.DoubleLit, numLit.ToString());
+                    }
+                    break;
+                default:
+                    numLit.Append(ConsumeOct());
+                    break;
+            }
+
+            return CreateToken(TokenType.IntLit, numLit.ToString());
+        }
+
+        if (Char.IsNumber(prevChar))
+        {
+            numLit.Append(prevChar);
+        }
+        
+        numLit.Append(ConsumeDec());
+        char? delim = PeekChar();
+        if (delim is not null && delim.Value == '.')
+        {
+            numLit.Append(ConsumeChar());
+            numLit.Append(ConsumeDec());
+            delim = PeekChar();
+        }
+        
+        if (delim is not null)
+        {
+            numLit.Append(ConsumeDec());
+            delim = PeekChar();
+            switch (delim)
+            {
+                case 'f':
+                case 'F':
+                    ConsumeChar();
+                    return CreateToken(TokenType.FloatLit, numLit.ToString());
+                case 'e':
+                case 'E':
+                    numLit.Append(ConsumeChar());
+                    if (CheckForChar('-'))
+                    {
+                        numLit.Append(ConsumeChar());
+                    }
+                    numLit.Append(ConsumeDec());
+                    if (CheckForChar('f'))
+                    {
+                        Console.WriteLine(PeekChar().Value);
+                        ConsumeChar();
+                        return CreateToken(TokenType.FloatLit, numLit.ToString());
+                    }
+
+                    ConsumeChar();
+                    return CreateToken(TokenType.DoubleLit, numLit.ToString());
+                case 'l':
+                case 'L':
+                    ConsumeChar(); // I guess we could append this but from the perspective of ast building or generation we have all the necessary info in TokenType so it's enough to just consume
+                    return CreateToken(TokenType.LongLit, numLit.ToString());
+                default: 
+                    return numLit.ToString().Contains('.') ? CreateToken(TokenType.DoubleLit, numLit.ToString()) : CreateToken(TokenType.IntLit, numLit.ToString());
+            }
+        }
+
+        if (delim is not null)
+        {
+            switch (delim)
+            {
+                
+            }   
+        }
+
+        throw new JavaSyntaxException("idk man");
+    }
+
+    private string ConsumeBin() => ConsumeWhileLegalChar(new int[][] { [48, 49] });
+    private string ConsumeOct() => ConsumeWhileLegalChar(new int[][] { [48, 55] });
+    private string ConsumeDec() => ConsumeWhileLegalChar(new int[][] { [48, 57] });
+    private string ConsumeHex() => ConsumeWhileLegalChar(new int[][] { [48, 57], [65, 70], [97, 102] });
+    
+    
+    private String ConsumeWhileLegalChar(int[][] legalCharRanges)
+    {
+        char? peekedChar = PeekChar();
+        StringBuilder consumed = new StringBuilder();
+        while (peekedChar is not null)
+        {
+            int peekedCharNum = (int)peekedChar;
+            foreach (var legalRange in legalCharRanges)
+            {
+                if (peekedCharNum >= legalRange[0] && peekedCharNum <= legalRange[1])
+                {
+                    consumed.Append(ConsumeChar());
+                    peekedChar = PeekChar();
+                    goto validCharacter;
+                }
+            }
+
+            break;
+            validCharacter: ;
+        }
+
+        return consumed.ToString();
+    }
+
     private Token ConsumeStringLit()
     {
-        ConsumeChar();
-        
         StringBuilder stringLit = new StringBuilder();
         // check if this doesn't break if a file begins with '"' illegal statement so shouldn't pass either way but not because of a ArrayIndexOutOfBoundsException
         // which might get thrown. PeekChar should handle it but best to check
-        while (!(CheckForChar('"') && CheckForChar('\\', -1))) 
+        //!CheckForChar('"') && !CheckForChar('\\', -1)
+        while (!(CheckForChar('"') && !CheckForChar('\\', -1)))
         {
             stringLit.Append(ConsumeChar());
         }
@@ -186,7 +351,7 @@ public class LexerSimple : ILexer
         StringBuilder charLit = new StringBuilder();
 
         // same case as in ConsumeStringLit()
-        while (!(CheckForChar('\'') && CheckForChar('\\', -1)))
+        while (!(CheckForChar('\'') && !CheckForChar('\\', -1)))
         {
             charLit.Append(ConsumeChar());
         }
@@ -202,7 +367,7 @@ public class LexerSimple : ILexer
     private char? PeekChar(int offset = 0)
     {
         int accessIndex = offset + _currPos;
-        if (accessIndex < _fileChars.Length)
+        if (accessIndex < _fileChars.Length && accessIndex >= 0)
         {
             return _fileChars[accessIndex];
         }

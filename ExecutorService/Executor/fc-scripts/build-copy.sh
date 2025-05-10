@@ -15,8 +15,10 @@ mount "$ROOTFS" "$ROOTFS_DIR"
 
 cat > "$ROOTFS_DIR/sandbox/run.sh" << EOF
 #!/bin/bash
-
+ls -la
+pwd
 cd /sandbox
+ls -la
 
 javac -cp "gson-2.13.1.jar" "$CLASSNAME.java"
 java -cp ".:gson-2.13.1.jar" $CLASSNAME > /dev/ttyS0 2>&1

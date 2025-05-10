@@ -13,7 +13,7 @@ public interface ICodeExecutorService
 }
 
 
-public class CodeCodeExecutorService(IExecutorRepository executorRepository, IExecutorConfig executorConfig) : ICodeExecutorService
+public class CodeExecutorService(IExecutorRepository executorRepository, IExecutorConfig executorConfig) : ICodeExecutorService
 {
     private const string JavaImport = "import com.google.gson.Gson;\n\n"; //TODO this is temporary, not the gson but the way it's imported
 
@@ -79,6 +79,8 @@ public class CodeCodeExecutorService(IExecutorRepository executorRepository, IEx
     {
         byte[] codeBytes = Encoding.UTF8.GetBytes(userSolutionData.FileContents.ToString());
         string codeB64 = Convert.ToBase64String(codeBytes);
+
+        Console.WriteLine($"{_codeAnalysisResult!.MainClassName}");
         
         var buildProcess = new Process
         {

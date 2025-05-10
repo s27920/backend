@@ -22,4 +22,6 @@ public enum TokenType
     
     Dot, Comma,
     
+    Plus, Minus, Mul, Div, Mod
+    
 }

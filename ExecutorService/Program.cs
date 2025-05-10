@@ -1,25 +1,27 @@
 using ExecutorService.Executor;
 
+
 var builder = WebApplication.CreateBuilder(args);
 
+builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
+builder.Services.AddScoped<IExecutorRepository, ExecutorRepositoryMock>();
+builder.Services.AddScoped<ICodeExecutorService, CodeExecutorService>();
+builder.Services.AddSingleton<IExecutorConfig, ExecutorConfig>();
+
 var app = builder.Build();
 
-if (app.Environment.IsDevelopment())
-{
-    app.UseSwagger();
-    app.UseSwaggerUI();
-}
-
-builder.Services.AddScoped<ICodeExecutorService, CodeCodeExecutorService>();
-builder.Services.AddScoped<IExecutorRepository, ExecutorRepository>();
-builder.Services.AddSingleton<IExecutorConfig, ExecutorConfig>();
+// Configure the HTTP request pipeline.
+app.UseSwagger();
+app.UseSwaggerUI();
 
 app.UseHttpsRedirection();
 
-app.MapGet("/index", () => "Hello world");
+// app.UseAuthentication();
+//
+// app.UseAuthorization();
 
 app.MapControllers();
 

@@ -11,7 +11,7 @@ cat > "$CONFIG_FILE" << EOF
 {
   "boot-source": {
     "kernel_image_path": "$KERNEL_PATH",
-    "boot_args": "console=ttyS0 reboot=k panic=-1 pci=off nomodules i8042.noaux i8042.nomux i8042.nopnp i8042.nokbd systemd.unit=executor.service"
+    "boot_args": "console=ttyS0 quiet loglevel=0 reboot=k panic=-1 pci=off nomodules i8042.noaux i8042.nomux i8042.nopnp i8042.nokbd systemd.unit=executor.service"
   },
   "drives": [
     {
