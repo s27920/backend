@@ -29,7 +29,8 @@ cat > "$CONFIG_FILE" << EOF
 }
 EOF
 
-timeout -s SIGKILL 30s firecracker-v1.2.0-x86_64 --api-sock "$SOCK_PATH" --config-file "$CONFIG_FILE"
+#timeout -s SIGKILL 30s
+firecracker-v1.2.0-x86_64 --api-sock "$SOCK_PATH" --config-file "$CONFIG_FILE"
 
 if [ $? -eq 137 ]; then
     echo "timed out"

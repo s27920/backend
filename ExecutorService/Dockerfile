@@ -36,18 +36,21 @@ RUN apt-get update && \
     qemu-kvm \
     libvirt-daemon-system \
     libvirt-clients && \
+    apt-get clean && \
     wget https://github.com/firecracker-microvm/firecracker/releases/download/v1.2.0/firecracker-v1.2.0-x86_64.tgz && \
     tar -xvf firecracker-v1.2.0-x86_64.tgz && \
     mv release-v1.2.0-x86_64/firecracker-v1.2.0-x86_64 /usr/local/bin/ && \
-    apt-get clean && \
+    mkdir -p /app/fc-scripts && \
+    wget https://s3.amazonaws.com/spec.ccfc.min/img/quickstart_guide/x86_64/kernels/vmlinux.bin -O /app/fc-scripts/vmlinux.bin && \
     rm -rf firecracker-v1.2.0-x86_64.tgz && \
     rm -rf /var/lib/apt/lists/* && \
     rm -rf release-v1.2.0-x86_64 && \
     echo '/usr/local/bin/firecracker-v1.2.0-x86_64' >> ~/.bashrc
 
+
 COPY Executor/fc-scripts fc-scripts
 COPY Executor/client-src client-src
 
-USER $APP_UID
+RUN chmod +x fc-scripts/build-copy.sh && chmod +x fc-scripts/java-exec.sh
 
 ENTRYPOINT ["dotnet", "ExecutorService.dll"]
