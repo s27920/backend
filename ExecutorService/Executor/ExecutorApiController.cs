@@ -5,16 +5,16 @@ namespace ExecutorService.Executor;
 
 [ApiController]
 [Route("/api/execute")]
-public class ExecutorApiController(IExecutorService executorService) : ControllerBase
+public class ExecutorApiController(ICodeExecutorService codeExecutorService) : ControllerBase
 {
     [HttpPost]
     public async Task<IActionResult> ExecuteCode([FromBody] ExecuteRequestDto executeRequest)
     {
-        return Ok(await executorService.FullExecute(executeRequest));
+        return Ok(await codeExecutorService.FullExecute(executeRequest));
     }
     [HttpPost("dry")]
     public async Task<IActionResult> DryExecuteCode([FromBody] ExecuteRequestDto executeRequest)
     {
-        return Ok(await executorService.DryExecute(executeRequest));
+        return Ok(await codeExecutorService.DryExecute(executeRequest));
     }
 }

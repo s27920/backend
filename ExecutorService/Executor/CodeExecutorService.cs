@@ -6,14 +6,14 @@ using ExecutorService.Executor._ExecutorUtils;
 
 namespace ExecutorService.Executor;
 
-public interface IExecutorService
+public interface ICodeExecutorService
 {
     public Task<ExecuteResultDto> FullExecute(ExecuteRequestDto executeRequestDto);
     public Task<ExecuteResultDto> DryExecute(ExecuteRequestDto executeRequestDto);
 }
 
 
-public class ExecutorService(IExecutorRepository executorRepository, IExecutorConfig executorConfig) : IExecutorService
+public class CodeCodeExecutorService(IExecutorRepository executorRepository, IExecutorConfig executorConfig) : ICodeExecutorService
 {
     private const string JavaImport = "import com.google.gson.Gson;\n\n"; //TODO this is temporary, not the gson but the way it's imported
 
