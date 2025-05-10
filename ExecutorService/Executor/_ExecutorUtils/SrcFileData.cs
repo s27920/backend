@@ -1,12 +1,15 @@
+using System.Text;
+
 namespace ExecutorService.Executor._ExecutorUtils;
 
-public class SrcFileData(Guid guid, string lang, string funcName)
+public class SrcFileData(Guid guid, Language lang, string funcName, StringBuilder fileContents)
 {
     public Guid Guid => guid;
 
-    public string Lang => lang;
+    public Language Lang => lang;
 
     public string FuncName => funcName;
-        
-    public string FilePath => $"client-src/{lang}/{guid.ToString()}.java";
+
+    public StringBuilder FileContents => fileContents;
+
 }

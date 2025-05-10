@@ -35,7 +35,8 @@ RUN apt-get update && \
     qemu-utils \
     qemu-kvm \
     libvirt-daemon-system \
-    libvirt-clients && \
+    libvirt-clients \
+    bash && \
     apt-get clean && \
     wget https://github.com/firecracker-microvm/firecracker/releases/download/v1.2.0/firecracker-v1.2.0-x86_64.tgz && \
     tar -xvf firecracker-v1.2.0-x86_64.tgz && \

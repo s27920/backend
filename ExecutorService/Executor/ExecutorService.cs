@@ -3,6 +3,7 @@ using System.Text;
 using ExecutorService.Analyzer._AnalyzerUtils;
 using ExecutorService.Analyzer.AstAnalyzer;
 using ExecutorService.Executor._ExecutorUtils;
+using Microsoft.AspNetCore.Mvc.ModelBinding;
 using Microsoft.Win32.SafeHandles;
 
 namespace ExecutorService.Executor;
@@ -19,17 +20,24 @@ public interface IExecutorService
 public class ExecutorService(IExecutorRepository executorRepository, IExecutorConfig executorConfig) : IExecutorService
 {
     private const string JavaImport = "import com.google.gson.Gson;\n\n"; //TODO this is temporary, not the gson but the way it's imported
-    
-    private readonly IExecutorConfig _config = executorConfig; //TODO use this to check language selection
+
     private IAnalyzer? _analyzer;
     private CodeAnalysisResult? _codeAnalysisResult;
 
     public async Task<ExecuteResultDto> FullExecute(ExecuteRequestDto executeRequestDto)
     {
-        SrcFileData fileData = await PrepareFile(executeRequestDto);
+        Language lang;
+        try
+        {
+            lang = CheckLanguageSupported(executeRequestDto.Lang);
+        }
+        catch (InvalidOperationException e)
+        {
+            return new ExecuteResultDto("", "Err: unsupported language");
+        }
+        var fileData = await PrepareFile(executeRequestDto.CodeB64, lang, executeRequestDto.ExerciseId);
 
-        _analyzer = new AnalyzerSimple(await File.ReadAllTextAsync(fileData.FilePath), await executorRepository.GetTemplateAsync());
-        
+        _analyzer = new AnalyzerSimple(fileData.FileContents.ToString());
         _codeAnalysisResult = _analyzer.AnalyzeUserCode();
         
         if (!_codeAnalysisResult.PassedValidation)
@@ -53,25 +61,35 @@ public class ExecutorService(IExecutorRepository executorRepository, IExecutorCo
 
     public async Task<ExecuteResultDto> DryExecute(ExecuteRequestDto executeRequestDto)
     {
-        _analyzer = new AnalyzerSimple(executeRequestDto.Code);
-        _codeAnalysisResult = _analyzer.AnalyzeUserCode();
+        Language lang;
+        try
+        {
+            lang = CheckLanguageSupported(executeRequestDto.Lang);
+        }
+        catch (InvalidOperationException)
+        {
+            return new ExecuteResultDto("", "Err: unsupported language");
+        }
         
-        var fileData = await PrepareFile(executeRequestDto);
-        // return new ExecuteResultDto(await File.ReadAllTextAsync(fileData.FilePath), ""); /*[DEBUG]*/
+        var fileData = await PrepareFile(executeRequestDto.CodeB64, lang, executeRequestDto.ExerciseId);
+        
+        _analyzer = new AnalyzerSimple(fileData.FileContents.ToString());
+        _codeAnalysisResult = _analyzer.AnalyzeUserCode();
+
         return await Exec(fileData);
     }
 
     private async Task<ExecuteResultDto> Exec(SrcFileData srcFileData)
     {
+        byte[] codeBytes = Encoding.UTF8.GetBytes(srcFileData.FileContents.ToString());
+        string codeB64 = Convert.ToBase64String(codeBytes);
         
-        
-        
-        var execProcess = new Process
+        var buildProcess = new Process
         {
             StartInfo = new ProcessStartInfo
             {
-                FileName = "/bin/sh",
-                Arguments = $"\"./scripts/deploy-executor-container.sh\" \"{srcFileData.Lang}\" \"{srcFileData.Guid.ToString()}\" \"{_codeAnalysisResult!.MainClassName}\"", //never actually gonna be null which is why I threw that ! in
+                FileName = "/bin/bash",
+                Arguments = $"/app/fc-scripts/build-copy.sh {_codeAnalysisResult!.MainClassName} {codeB64} {srcFileData.Guid}", 
                 RedirectStandardError = true,
                 RedirectStandardOutput = true,
                 RedirectStandardInput = true,
@@ -79,27 +97,42 @@ public class ExecutorService(IExecutorRepository executorRepository, IExecutorCo
             }
         };
         
-        
+        buildProcess.Start();
+        await buildProcess.WaitForExitAsync();
+        // TODO add success or failure check
+
+        var execProcess = new Process
+        {
+            StartInfo = new ProcessStartInfo
+            {
+                FileName = "/bin/bash",
+                Arguments = $"/app/fc-scripts/java-exec.sh {srcFileData.Guid}",
+                RedirectStandardError = true,
+                RedirectStandardOutput = true,
+                RedirectStandardInput = true,
+                CreateNoWindow = true
+            }
+        };
 
         execProcess.Start();
+        await execProcess.WaitForExitAsync();
         
-        await execProcess.StandardInput.WriteAsync(await File.ReadAllTextAsync(srcFileData.FilePath));
-        execProcess.StandardInput.Close();
-        
-        File.Delete(srcFileData.FilePath);
-
         var output = await execProcess.StandardOutput.ReadToEndAsync();
         var error = await execProcess.StandardError.ReadToEndAsync();
         
         return new ExecuteResultDto(output, error);
     }
 
-    private async Task<SrcFileData> PrepareFile(ExecuteRequestDto executeRequest) //TODO Make the import not constant
+    private async Task<SrcFileData> PrepareFile(string codeB64, Language lang, string exerciseId) //TODO Make the import not constant
     {
-        var fileData = new SrcFileData(Guid.NewGuid(), executeRequest.Lang, await executorRepository.GetFuncName());
+        byte[] codeBytes = Convert.FromBase64String(codeB64);
+        string codeString = Encoding.UTF8.GetString(codeBytes);
 
-        await File.WriteAllTextAsync(fileData.FilePath, JavaImport);
-        await File.AppendAllTextAsync(fileData.FilePath, executeRequest.Code);
+        StringBuilder code = new StringBuilder(codeString);
+        
+        var fileData = new SrcFileData(Guid.NewGuid(), lang, await executorRepository.GetFuncName(), code);
+
+        code.Insert(0, JavaImport);
         
         return fileData;
     }
@@ -107,12 +140,6 @@ public class ExecutorService(IExecutorRepository executorRepository, IExecutorCo
     private async Task InsertTestCases(SrcFileData srcFileData, int writeOffset)
     {
         TestCase[] testCases = await executorRepository.GetTestCasesAsync();
-
-        using SafeFileHandle handle = File.OpenHandle(srcFileData.FilePath, FileMode.Open, FileAccess.ReadWrite, FileShare.ReadWrite);
-
-        long len = new FileInfo(srcFileData.FilePath).Length;
-        byte[] fileTail = new byte[len - writeOffset];
-        await RandomAccess.ReadAsync(handle, fileTail, writeOffset);
         
         StringBuilder testCaseInsertBuilder = new StringBuilder();
         testCaseInsertBuilder.Append("Gson gson = new Gson();\n");
@@ -123,9 +150,11 @@ public class ExecutorService(IExecutorRepository executorRepository, IExecutorCo
             testCaseInsertBuilder.Append(comparingStatement);
         }
         
-        byte[] insertionBytes = Encoding.UTF8.GetBytes(testCaseInsertBuilder.ToString());
-        byte[] combinedBytes = insertionBytes.Concat(fileTail).ToArray();
-        
-        await RandomAccess.WriteAsync(handle, combinedBytes, writeOffset);
+        srcFileData.FileContents.Insert(writeOffset, testCaseInsertBuilder);
+    }
+
+    private Language CheckLanguageSupported(string lang)
+    {
+        return executorConfig.GetSupportedLanguages().FirstOrDefault(l => l.Name.Equals(lang)) ?? throw new InvalidOperationException(); // TODO make this a custom languageException
     }
 }

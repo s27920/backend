@@ -1,8 +1,8 @@
 namespace ExecutorService.Executor._ExecutorUtils;
 
-public class ExecuteRequestDto(string code, string lang, string exerciseId)
+public class ExecuteRequestDto(string codeB64, string lang, string exerciseId)
 {
-    public string Code => code;
+    public string CodeB64 => codeB64;
 
     public string Lang => lang;
     

@@ -28,7 +28,7 @@ echo c > /proc/sysrq-trigger
 
 EOF
 
-echo "$CODE" > "$ROOTFS_DIR/sandbox/$CLASSNAME.java"
+echo "$CODE" | base64 -d > "$ROOTFS_DIR/sandbox/$CLASSNAME.java"
 
 chmod a-w "$ROOTFS_DIR/sandbox/run.sh"
 chmod a+x "$ROOTFS_DIR/sandbox/run.sh"
