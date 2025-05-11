@@ -14,7 +14,7 @@ directory used during the build process.
 It is generally ill advised to run this script since it takes quite a bit of time
 instead when wanting to experiment (providing of course the base configuration is sufficient)
 one should rather just copy 'rootfs-base.ext4'. Nevertheless should the need
-to run the script it should be executed as so.
+to run the script arise it should be executed as so.
 
 sudo bash build-base.sh
 

@@ -3,7 +3,7 @@
 rm -rf my-rootfs-base
 rm -rf rootfs-base.ext4
 
-dd if=/dev/zero of=rootfs-base.ext4 bs=1M count=1024
+dd if=/dev/zero of=rootfs-base.ext4 bs=1M count=512
 mkfs.ext4 rootfs-base.ext4
 
 mkdir -p my-rootfs-base

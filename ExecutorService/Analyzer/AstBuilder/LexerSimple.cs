@@ -273,7 +273,6 @@ private Token ConsumeNumericLit(char prevChar) // TODO needs cleaning up, bit of
                     numLit.Append(ConsumeDec());
                     if (CheckForChar('f'))
                     {
-                        Console.WriteLine(PeekChar().Value);
                         ConsumeChar();
                         return CreateToken(TokenType.FloatLit, numLit.ToString());
                     }

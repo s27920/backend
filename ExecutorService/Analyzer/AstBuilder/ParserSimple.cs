@@ -231,7 +231,6 @@ public class ParserSimple : IParser
             ConsumeToken();
             while (!CheckTokenType(TokenType.Semi))
             {
-                Console.WriteLine(PeekToken().Type);
                 TryConsume();
             }
         }
@@ -240,9 +239,6 @@ public class ParserSimple : IParser
         {
             ConsumeToken(); 
         }
-
-        Console.WriteLine("consumed declaration");
-        Console.WriteLine(PeekToken().Type);
         return scopedVar;
     }
 

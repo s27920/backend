@@ -42,10 +42,10 @@ public class ExecutorRepositoryMock : IExecutorRepository
 
     public async Task<TestCase[]> GetTestCasesAsync()
     {
-        var testCases = "new int[] {1,5,2,4,3}<\n" +
-                        "new int[] {1,2,3,4,5}<<\n" +
-                        "new int[] {94,37,9,52,17}<\n" +
-                        "new int[] {9,17,37,52,94}<<\n";
+        const string testCases = "new int[] {1,5,2,4,3}<\n" +
+                                 "new int[] {1,2,3,4,5}<<\n" +
+                                 "new int[] {94,37,9,52,17}<\n" +
+                                 "new int[] {9,17,37,52,94}<<\n";
         return TestCase.ParseTestCases(testCases);
     }
 

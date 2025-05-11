@@ -79,15 +79,13 @@ public class CodeExecutorService(IExecutorRepository executorRepository, IExecut
     {
         byte[] codeBytes = Encoding.UTF8.GetBytes(userSolutionData.FileContents.ToString());
         string codeB64 = Convert.ToBase64String(codeBytes);
-
-        Console.WriteLine($"{_codeAnalysisResult!.MainClassName}");
         
         var buildProcess = new Process
         {
             StartInfo = new ProcessStartInfo
             {
                 FileName = "/bin/bash",
-                Arguments = $"/app/fc-scripts/build-copy.sh {_codeAnalysisResult!.MainClassName} {codeB64} {userSolutionData.Guid}", 
+                Arguments = $"/app/fc-scripts/build-copy.sh {_codeAnalysisResult!.MainClassName} {codeB64} {userSolutionData.ExecutionId} {userSolutionData.SigningKey}", 
                 RedirectStandardError = true,
                 RedirectStandardOutput = true,
                 RedirectStandardInput = true,
@@ -104,7 +102,7 @@ public class CodeExecutorService(IExecutorRepository executorRepository, IExecut
             StartInfo = new ProcessStartInfo
             {
                 FileName = "/bin/bash",
-                Arguments = $"/app/fc-scripts/java-exec.sh {userSolutionData.Guid}",
+                Arguments = $"/app/fc-scripts/java-exec.sh {userSolutionData.ExecutionId} {userSolutionData.SigningKey}",
                 RedirectStandardError = true,
                 RedirectStandardOutput = true,
                 RedirectStandardInput = true,
@@ -115,10 +113,19 @@ public class CodeExecutorService(IExecutorRepository executorRepository, IExecut
         execProcess.Start();
         await execProcess.WaitForExitAsync();
         
-        var output = await execProcess.StandardOutput.ReadToEndAsync();
-        var error = await execProcess.StandardError.ReadToEndAsync();
-        
-        return new ExecuteResultDto(output, error);
+        try
+        {
+            var output = await File.ReadAllTextAsync($"/tmp/{userSolutionData.ExecutionId}-OUT-LOG.log");
+            var answ = await File.ReadAllTextAsync($"/tmp/{userSolutionData.ExecutionId}-ANSW-LOG.log");
+            Console.WriteLine($"output: {output}");
+            Console.WriteLine($"testing: {answ}");
+            return new ExecuteResultDto(output, answ);
+        }
+        catch ( FileNotFoundException ex)
+        {
+            
+        }
+        return new ExecuteResultDto("No File Found", "");
     }
 
     private async Task<UserSolutionData> PrepareFile(string codeB64, Language lang, string exerciseId) //TODO Make the import not constant
@@ -128,8 +135,7 @@ public class CodeExecutorService(IExecutorRepository executorRepository, IExecut
 
         StringBuilder code = new StringBuilder(codeString);
         
-        var fileData = new UserSolutionData(Guid.NewGuid(), lang, await executorRepository.GetFuncName(), code, exerciseId);
-
+        var fileData = new UserSolutionData(Guid.NewGuid(), Guid.NewGuid().ToString(), lang, await executorRepository.GetFuncName(), code, exerciseId);
         code.Insert(0, JavaImport);
         
         return fileData;
@@ -144,7 +150,7 @@ public class CodeExecutorService(IExecutorRepository executorRepository, IExecut
 
         foreach (var testCase in testCases)
         {
-            string comparingStatement = $"System.out.println(gson.toJson({testCase.ExpectedOutput}).equals(gson.toJson(sortIntArr({testCase.TestInput}))));\n";
+            string comparingStatement = $"System.out.println(\"ctr-[{userSolutionData.SigningKey}]-ans: \" + gson.toJson({testCase.ExpectedOutput}).equals(gson.toJson(sortIntArr({testCase.TestInput}))));\n";
             testCaseInsertBuilder.Append(comparingStatement);
         }
         
