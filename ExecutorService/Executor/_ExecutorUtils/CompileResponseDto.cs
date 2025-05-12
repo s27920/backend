@@ -1,4 +1,4 @@
-namespace CompilerService.Dtos;
+namespace ExecutorService.Executor._ExecutorUtils;
 
 public class CompileResponseDto(string compileResponseB64)
 {

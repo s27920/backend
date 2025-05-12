@@ -51,7 +51,8 @@ process_control(){
   done
 }
 
-timeout -s SIGKILL 15s firecracker-v1.2.0-x86_64 --api-sock "$SOCK_PATH" --config-file "$CONFIG_FILE" 2>&1 | process_control &
+# TODO SUPER IMPORTANT the unix socket comms ARE NOT SHUTTING THE PROCESS DOWN
+timeout -s SIGKILL 300s firecracker-v1.2.0-x86_64 --api-sock "$SOCK_PATH" --config-file "$CONFIG_FILE" 2>&1 | process_control &
 wait $!
 
 if [ $? -eq 137 ]; then

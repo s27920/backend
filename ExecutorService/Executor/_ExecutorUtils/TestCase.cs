@@ -25,7 +25,7 @@ public class TestCase(string testInput, string expectedOutput)
         return testCaseList.ToArray();
     }
     
-    //TODO cool funky version below boring practical version above (marked todo because it pops out more lol)
+    //TODO cool funky version below boring practical version above (marked todo because it pops out more)
     IEnumerable<TestCase> EnumerateTestCases(string testCases)
     {
         for (var i = 0; i < testCases.Length;)

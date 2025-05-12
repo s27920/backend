@@ -1,5 +1,7 @@
 using System.Diagnostics;
+using System.Net.Http.Headers;
 using System.Text;
+using System.Text.Json;
 using ExecutorService.Analyzer._AnalyzerUtils;
 using ExecutorService.Analyzer.AstAnalyzer;
 using ExecutorService.Executor._ExecutorUtils;
@@ -19,6 +21,7 @@ public class CodeExecutorService(IExecutorRepository executorRepository, IExecut
 
     private IAnalyzer? _analyzer;
     private CodeAnalysisResult? _codeAnalysisResult;
+    private const string CompilerServiceUrl = "http://172.21.40.155:5137/compile";
 
     public async Task<ExecuteResultDto> FullExecute(ExecuteRequestDto executeRequestDto)
     {
@@ -51,7 +54,6 @@ public class CodeExecutorService(IExecutorRepository executorRepository, IExecut
             return new ExecuteResultDto("", "no main found. Exiting");
         }
 
-        // return new ExecuteResultDto($"{await File.ReadAllTextAsync(fileData.FilePath)}", ""); /*[DEBUG]*/
         return await Exec(fileData);
     }
 
@@ -75,17 +77,41 @@ public class CodeExecutorService(IExecutorRepository executorRepository, IExecut
         return await Exec(fileData);
     }
 
+    
+    //TODO add better error handling here
     private async Task<ExecuteResultDto> Exec(UserSolutionData userSolutionData)
     {
         byte[] codeBytes = Encoding.UTF8.GetBytes(userSolutionData.FileContents.ToString());
         string codeB64 = Convert.ToBase64String(codeBytes);
+
+        // TODO Make this reuse http clients
+        HttpClient client = new();
+        client.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
+
+        Console.WriteLine(codeB64);
+        Console.WriteLine(_codeAnalysisResult!.MainClassName);
+        var requestDto = new CompileRequestDto(codeB64, _codeAnalysisResult!.MainClassName);
+        var jsonContent = new StringContent(
+            JsonSerializer.Serialize(requestDto),
+            Encoding.UTF8,
+            "application/json"
+        );
+        // TODO add polly fallback policy
+
+        var response = await client.PostAsync(CompilerServiceUrl, jsonContent);
+        var responseDto = await response.Content.ReadFromJsonAsync<CompileResponseDto>();
+        
+        if (responseDto is null)
+        {
+            throw new JavaSyntaxException("Probably compilation failed ig");
+        }
         
         var buildProcess = new Process
         {
             StartInfo = new ProcessStartInfo
             {
                 FileName = "/bin/bash",
-                Arguments = $"/app/fc-scripts/build-copy.sh {_codeAnalysisResult!.MainClassName} {codeB64} {userSolutionData.ExecutionId} {userSolutionData.SigningKey}", 
+                Arguments = $"/app/fc-scripts/build-copy.sh \"{_codeAnalysisResult.MainClassName}\" \"{responseDto.CompileResponseB64}\" \"{userSolutionData.ExecutionId}\" \"{userSolutionData.SigningKey}\"", 
                 RedirectStandardError = true,
                 RedirectStandardOutput = true,
                 RedirectStandardInput = true,
