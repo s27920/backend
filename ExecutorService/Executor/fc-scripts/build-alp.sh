@@ -10,7 +10,7 @@ mkdir -p /tmp/rootfs-alp
 
 sudo mount alpine-rootfs.ext4 /tmp/rootfs-alp
 
-cd /tmp/rootfs-alp
+cd /tmp/rootfs-alp || exit 1
 
 sudo curl -O https://dl-cdn.alpinelinux.org/alpine/v3.21/releases/x86_64/alpine-minirootfs-3.21.3-x86_64.tar.gz
 sudo tar -xpf alpine-minirootfs-3.21.3-x86_64.tar.gz
@@ -56,7 +56,7 @@ EOF
 
 echo "" >  /tmp/rootfs-alp/etc/resolv.conf
 
-cd ~
+cd ~ || exit 1
 
 sudo umount /tmp/rootfs-alp/dev/pts
 sudo umount /tmp/rootfs-alp/dev

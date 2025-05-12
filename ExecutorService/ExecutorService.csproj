@@ -19,4 +19,10 @@
       </Content>
     </ItemGroup>
 
+    <ItemGroup>
+      <None Update="Executor\fc-scripts\readme.md">
+        <DependentUpon>rootfs-base.ext4</DependentUpon>
+      </None>
+    </ItemGroup>
+
 </Project>

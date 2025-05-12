@@ -24,8 +24,8 @@ COPY --from=publish /app/publish .
 COPY Executor/fc-scripts fc-scripts
 
 RUN apt-get update && \
+#    debootstrap \
     apt-get install -y --no-install-recommends \
-    debootstrap \
     curl \
     wget \
     unzip \
