@@ -88,8 +88,6 @@ public class CodeExecutorService(IExecutorRepository executorRepository, IExecut
         HttpClient client = new();
         client.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
 
-        Console.WriteLine(codeB64);
-        Console.WriteLine(_codeAnalysisResult!.MainClassName);
         var requestDto = new CompileRequestDto(codeB64, _codeAnalysisResult!.MainClassName);
         var jsonContent = new StringContent(
             JsonSerializer.Serialize(requestDto),
@@ -99,25 +97,27 @@ public class CodeExecutorService(IExecutorRepository executorRepository, IExecut
         // TODO add polly fallback policy
 
         var response = await client.PostAsync(CompilerServiceUrl, jsonContent);
-        var responseDto = await response.Content.ReadFromJsonAsync<CompileResponseDto>();
+        byte[] responseDto = await response.Content.ReadAsByteArrayAsync();
         
         if (responseDto is null)
         {
             throw new JavaSyntaxException("Probably compilation failed ig");
         }
         
+        await File.WriteAllBytesAsync($"/tmp/{userSolutionData.ExecutionId}.class", responseDto);
         var buildProcess = new Process
         {
             StartInfo = new ProcessStartInfo
             {
                 FileName = "/bin/bash",
-                Arguments = $"/app/fc-scripts/build-copy.sh \"{_codeAnalysisResult.MainClassName}\" \"{responseDto.CompileResponseB64}\" \"{userSolutionData.ExecutionId}\" \"{userSolutionData.SigningKey}\"", 
+                Arguments = $"/app/fc-scripts/build-copy.sh \"{_codeAnalysisResult.MainClassName}\" \"{userSolutionData.ExecutionId}\" \"{userSolutionData.SigningKey}\"", 
                 RedirectStandardError = true,
                 RedirectStandardOutput = true,
                 RedirectStandardInput = true,
                 CreateNoWindow = true
             }
         };
+       
         
         buildProcess.Start();
         await buildProcess.WaitForExitAsync();

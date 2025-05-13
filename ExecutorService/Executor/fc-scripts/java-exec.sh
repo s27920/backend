@@ -18,7 +18,7 @@ cat > "$CONFIG_FILE" << EOF
 {
   "boot-source": {
     "kernel_image_path": "$KERNEL_PATH",
-    "boot_args": "console=ttyS0 init=/sbin/init quiet loglevel=0 selinux=0  reboot=k panic=-1 pci=off nomodules i8042.noaux i8042.nomux i8042.nopnp i8042.nokbd"
+    "boot_args": "console=ttyS0 init=/sbin/init quiet loglevel=0 selinux=0 reboot=k panic=-1 pci=off nomodules i8042.noaux i8042.nomux i8042.nopnp i8042.nokbd"
   },
   "drives": [
     {
@@ -59,4 +59,4 @@ if [ $? -eq 137 ]; then
     echo "timed out" >> "$STDOUT_PATH"
 fi
 
-rm -f "$SOCK_PATH" "$CONFIG_FILE" "$ROOTFS"
+#rm -f "$SOCK_PATH" "$CONFIG_FILE" "$ROOTFS"

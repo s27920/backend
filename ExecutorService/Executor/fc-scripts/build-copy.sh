@@ -1,9 +1,9 @@
 #!/bin/bash
 
 CLASSNAME="$1"
-BYTE_CODE="$2"
-EXEC_ID="$3"
-SIGNING_KEY="$4"
+EXEC_ID="$2"
+SIGNING_KEY="$3"
+
 
 ROOTFS_DIR="/tmp/$EXEC_ID-rootfs"
 ROOTFS="/tmp/$EXEC_ID-rootfs.ext4"
@@ -28,9 +28,7 @@ echo c > /proc/sysrq-trigger
 
 EOF
 
-echo "$BYTE_CODE"
-
-echo "$BYTE_CODE" > "$ROOTFS_DIR/sandbox/$CLASSNAME.class"
+cp "/tmp/$EXEC_ID.class" "$ROOTFS_DIR/sandbox/$CLASSNAME.class"
 
 chmod a-w "$ROOTFS_DIR/sandbox/run.sh"
 chmod a+x "$ROOTFS_DIR/sandbox/run.sh"

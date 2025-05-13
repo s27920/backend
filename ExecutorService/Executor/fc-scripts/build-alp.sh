@@ -3,7 +3,9 @@
 sudo rm -rf /tmp/rootfs-alp
 sudo rm -rf alpine-rootfs.ext4
 
-dd if=/dev/zero of=alpine-rootfs.ext4 bs=1M count=0 seek=512
+#note that seek 192 didn't work so I feel that 256 may be optimal
+
+dd if=/dev/zero of=alpine-rootfs.ext4 bs=1M count=0 seek=256
 mkfs.ext4 alpine-rootfs.ext4
 
 mkdir -p /tmp/rootfs-alp
@@ -52,7 +54,6 @@ start_stop_daemon_args="--make-pidfile"
 depend(){
     need localmount
     need mdevd
-#    need serial
 }
 
 INNER_EOF

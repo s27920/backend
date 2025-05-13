@@ -38,8 +38,7 @@ app.MapPost("/compile", ([FromBody] CompileRequestDto requestDto) =>
     
     compileProcess.Start();
     compileProcess.WaitForExit();
-    Console.WriteLine(File.ReadAllText($"/app/client-bytecode/{compileId}/{requestDto.ClassName}.class"));
-    return Results.Ok(new CompileResponseDto(File.ReadAllText($"/app/client-bytecode/{compileId}/{requestDto.ClassName}.class")));
+    return Results.File(File.ReadAllBytes($"/app/client-bytecode/{compileId}/{requestDto.ClassName}.class"), "application/octet-stream");
 });
 
 app.Run("http://0.0.0.0:5137");
