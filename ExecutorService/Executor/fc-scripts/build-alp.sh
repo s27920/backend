@@ -36,21 +36,28 @@ sudo mount -o bind /dev dev/
 sudo mount -o bind /dev/pts dev/pts/
 
 sudo chroot /tmp/rootfs-alp /bin/sh << 'EOF'
-adduser -D sandboxuser
 apk update
-apk add openjdk17-jre-headless coreutils openrc
-rm -rf /var/cache/apk/*
+apk add openjdk17-jre-headless coreutils openrc mdevd
+
+echo 'ttyS0 root:root 660' > /etc/mdevd.conf
 
 cat > "/etc/init.d/executor" << 'INNER_EOF'
 #!/sbin/openrc-run
-description="executor init service"
+description="java executor script"
 command="/sandbox/run.sh"
-pidfile="/var/run/executor.pid"
-command_user="sandboxuser"
+command_background=false
+pidfile="/run/executor.pid"
+start_stop_daemon_args="--make-pidfile"
+
+depend(){
+    need localmount
+    need mdevd
+#    need serial
+}
+
 INNER_EOF
 
 chmod +x /etc/init.d/executor
-
 rc-update add executor default
 EOF
 

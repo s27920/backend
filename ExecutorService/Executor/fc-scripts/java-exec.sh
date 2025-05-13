@@ -18,7 +18,7 @@ cat > "$CONFIG_FILE" << EOF
 {
   "boot-source": {
     "kernel_image_path": "$KERNEL_PATH",
-    "boot_args": "console=ttyS0 selinux=0 quiet loglevel=0 reboot=k panic=-1 pci=off nomodules i8042.noaux i8042.nomux i8042.nopnp i8042.nokbd"
+    "boot_args": "console=ttyS0 init=/sbin/init quiet loglevel=0 selinux=0  reboot=k panic=-1 pci=off nomodules i8042.noaux i8042.nomux i8042.nopnp i8042.nokbd"
   },
   "drives": [
     {
@@ -52,7 +52,7 @@ process_control(){
 }
 
 # TODO SUPER IMPORTANT the unix socket comms ARE NOT SHUTTING THE PROCESS DOWN
-timeout -s SIGKILL 300s firecracker-v1.2.0-x86_64 --api-sock "$SOCK_PATH" --config-file "$CONFIG_FILE" 2>&1 | process_control &
+timeout -s SIGKILL 15s firecracker-v1.2.0-x86_64 --api-sock "$SOCK_PATH" --config-file "$CONFIG_FILE" 2>&1 | process_control &
 wait $!
 
 if [ $? -eq 137 ]; then

@@ -9,7 +9,7 @@ builder.Services.AddSwaggerGen();
 
 var app = builder.Build();
 
-if (app.Environment.IsDevelopment())
+// if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
     app.UseSwaggerUI();
@@ -38,6 +38,7 @@ app.MapPost("/compile", ([FromBody] CompileRequestDto requestDto) =>
     
     compileProcess.Start();
     compileProcess.WaitForExit();
+    Console.WriteLine(File.ReadAllText($"/app/client-bytecode/{compileId}/{requestDto.ClassName}.class"));
     return Results.Ok(new CompileResponseDto(File.ReadAllText($"/app/client-bytecode/{compileId}/{requestDto.ClassName}.class")));
 });
 

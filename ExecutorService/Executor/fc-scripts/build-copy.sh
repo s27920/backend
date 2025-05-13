@@ -19,12 +19,16 @@ cat > "$ROOTFS_DIR/sandbox/run.sh" << EOF
 cd /sandbox
 
 java -cp ".:gson-2.13.1.jar" $CLASSNAME > /dev/ttyS0 2>&1
-
 sync
 
-echo "ctr-${SIGNING_KEY}-pof" > /dev/ttyS0 2>&1
+echo 1 > /proc/sys/kernel/sysrq
+echo c > /proc/sysrq-trigger
+
+#echo "ctr-${SIGNING_KEY}-pof" > /dev/ttyS0 2>&1
 
 EOF
+
+echo "$BYTE_CODE"
 
 echo "$BYTE_CODE" > "$ROOTFS_DIR/sandbox/$CLASSNAME.class"
 
