@@ -1,3 +1,4 @@
+using ExecutorService.Errors;
 using ExecutorService.Executor;
 
 
@@ -13,15 +14,11 @@ builder.Services.AddSingleton<IExecutorConfig, ExecutorConfig>();
 
 var app = builder.Build();
 
-// Configure the HTTP request pipeline.
+app.UseMiddleware<ExceptionHandlingMiddleware>();
 app.UseSwagger();
 app.UseSwaggerUI();
 
 app.UseHttpsRedirection();
-
-// app.UseAuthentication();
-//
-// app.UseAuthorization();
 
 app.MapControllers();
 

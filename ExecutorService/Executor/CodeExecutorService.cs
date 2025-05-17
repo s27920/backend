@@ -105,6 +105,7 @@ public class CodeExecutorService(IExecutorRepository executorRepository, IExecut
         }
         
         await File.WriteAllBytesAsync($"/tmp/{userSolutionData.ExecutionId}.class", responseDto);
+        
         var buildProcess = new Process
         {
             StartInfo = new ProcessStartInfo

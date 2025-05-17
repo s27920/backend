@@ -1,41 +1,17 @@
-To provide some context
+### **To provide some context.**
+***
 
-build-base.sh:
- 
-This is the initial scrip that deals with setting up a base
-filesystem image. It uses a minimal configuration of jammy configures dns 
-fetches apt sources creates necessary directories, scripts and services.
-It then cleans all unnecessary stuff out to make a hollow shell of a fs.
-
-It creates a directory 'my-rootfs-base' and file 'rootfs-base.ext4', the latter
-being the actual filesystem etched onto a .ext4 the former a dedicated mount
-directory used during the build process.
-
-It is generally ill advised to run this script since it takes quite a bit of time
-instead when wanting to experiment (providing of course the base configuration is sufficient)
-one should rather just copy 'rootfs-base.ext4'. Nevertheless should the need
-to run the script arise it should be executed as so.
-
-sudo bash build-base.sh
+#### **~~build-base.sh~~ \[deprecated\]**: <br />
+older version of the script that builds our base filesystem image. Changed to build-alp.sh. The decision was largely influenced by slow copies caused by jammy being generally bloated.
+<br /><br />
+#### **build-alp.sh:** <br />
+Will soon replace build-base.sh. Build our base filesystem image fetches some apk packages and prepares an openrc init that gets completed at copy time when it's executed shell script is inserted. Unlike in the case of the older build-base.sh this one completes in ~15s making rebuilding the image often a viable strategy.
+<br /><br />
+#### **build-copy.sh:** <br />
+takes all the parameters necessary for executing pre-compiled java bytecode. The scripts main goal is creating a unique per-execution fully functional alpine linux filesystem. It does so by copying the base image and building on top of it with the actual code to be executed and the script that does the executing.<br /> A future iteration may make an attempt at working with a squash-fs read-only filesystem on top of which another layer is added.<br />
+Something to note is that the script works off the presumption that the file containing the to be executed bytecode already exists within the system under /tmp/\<EXEC_ID\> as it will insert said bytecode by directly copying that file. Originally the script itself handled receiving and writing bytecode as one of the call args. The idea was scrapped however the distributed nature of compiling combined with encoding mismatches caused the bytecode to be mangled in transit causing JRE errors.
+<br /><br />
+##### **java-exec.sh:** <br />
+This script makes all the necessary pre-launch configurations and post-execution cleanup. It also attempts to handle vm ttyS0 output using special signing keys to verify the authenticity of control signals sent from within the micro-vm (such as the signal to power down)
 
 
-build-copy.sh:
-
-This script (for now at least is part of the deployment pipeline) it takes
-the base image 'rootfs-base.ext4' copies and appends to the copy execution specific
-files such as the java file. 
-
-When sandboxing unsafe java code this should be your first step.
-To be executed as so:
-
-sudo bash build-copy.sh \<CLASS_NAME\> \<FILE_PATH\>
-
-
-java-exec.sh
-
-This script is responsible for configuring and deploying the micro-vm. 
-It will create temporary files necessary for execution which will be cleaned 
-up shortly after the vm terminates
-To be executed as so:
-
-sudo bash java-exec.sh

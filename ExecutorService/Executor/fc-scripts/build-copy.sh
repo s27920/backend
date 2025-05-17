@@ -28,6 +28,11 @@ echo c > /proc/sysrq-trigger
 
 EOF
 
+if [ ! -f "/tmp/$EXEC_ID.class" ]; then
+  umount "$ROOTFS_DIR"
+  exit 1
+fi 
+
 cp "/tmp/$EXEC_ID.class" "$ROOTFS_DIR/sandbox/$CLASSNAME.class"
 
 chmod a-w "$ROOTFS_DIR/sandbox/run.sh"

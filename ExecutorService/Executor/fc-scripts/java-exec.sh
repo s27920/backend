@@ -59,4 +59,4 @@ if [ $? -eq 137 ]; then
     echo "timed out" >> "$STDOUT_PATH"
 fi
 
-#rm -f "$SOCK_PATH" "$CONFIG_FILE" "$ROOTFS"
+rm -f "$SOCK_PATH" "$CONFIG_FILE" "$ROOTFS" & disown

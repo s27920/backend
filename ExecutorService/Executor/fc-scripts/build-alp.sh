@@ -5,6 +5,7 @@ sudo rm -rf alpine-rootfs.ext4
 
 #note that seek 192 didn't work so I feel that 256 may be optimal
 
+# TODO skip creating journal and maybe do that cool no root disk space trick
 dd if=/dev/zero of=alpine-rootfs.ext4 bs=1M count=0 seek=256
 mkfs.ext4 alpine-rootfs.ext4
 
@@ -12,7 +13,7 @@ mkdir -p /tmp/rootfs-alp
 
 sudo mount alpine-rootfs.ext4 /tmp/rootfs-alp
 
-cd /tmp/rootfs-alp || exit 1
+cd /tmp/rootfs-alp || { sudo umount /tmp/rootfs-alp && exit 1; }
 
 sudo curl -O https://dl-cdn.alpinelinux.org/alpine/v3.21/releases/x86_64/alpine-minirootfs-3.21.3-x86_64.tar.gz
 sudo tar -xpf alpine-minirootfs-3.21.3-x86_64.tar.gz
@@ -64,10 +65,42 @@ EOF
 
 echo "" >  /tmp/rootfs-alp/etc/resolv.conf
 
-cd ~ || exit 1
+cat > /tmp/rootfs-alp/etc/inittab << EOF
+# /etc/inittab
 
-sudo umount /tmp/rootfs-alp/dev/pts
-sudo umount /tmp/rootfs-alp/dev
-sudo umount /tmp/rootfs-alp/proc
-sudo umount /tmp/rootfs-alp/sys
-sudo umount /tmp/rootfs-alp
+::sysinit:/sbin/openrc --quiet sysinit
+::sysinit:/sbin/openrc --quiet boot
+::wait:/sbin/openrc --quiet default
+
+# Set up a couple of getty's
+tty1::respawn:/sbin/getty 38400 tty1
+tty2::respawn:/sbin/getty 38400 tty2
+tty3::respawn:/sbin/getty 38400 tty3
+tty4::respawn:/sbin/getty 38400 tty4
+tty5::respawn:/sbin/getty 38400 tty5
+tty6::respawn:/sbin/getty 38400 tty6
+
+# Put a getty on the serial port
+#ttyS0::respawn:/sbin/getty -L 115200 ttyS0 vt100
+
+# Stuff to do for the 3-finger salute
+::ctrlaltdel:/sbin/reboot
+
+# Stuff to do before rebooting
+::shutdown:/sbin/openrc --quiet shutdown
+
+EOF
+
+
+cleanup(){
+  sudo umount /tmp/rootfs-alp/dev/pts
+  sudo umount /tmp/rootfs-alp/dev
+  sudo umount /tmp/rootfs-alp/proc
+  sudo umount /tmp/rootfs-alp/sys
+  sudo umount /tmp/rootfs-alp
+}
+
+cd ~ || cd / || { cleanup && exit 1 }
+
+
+cleanup
