@@ -1,5 +1,6 @@
 using ExecutorService.Errors;
 using ExecutorService.Executor;
+using ExecutorService.Executor.Configs;
 
 
 var builder = WebApplication.CreateBuilder(args);
@@ -11,6 +12,7 @@ builder.Services.AddSwaggerGen();
 builder.Services.AddScoped<IExecutorRepository, ExecutorRepositoryMock>();
 builder.Services.AddScoped<ICodeExecutorService, CodeExecutorService>();
 builder.Services.AddSingleton<IExecutorConfig, ExecutorConfig>();
+builder.Services.AddSingleton<ICompilationHandler, CompilationHandler>();
 
 var app = builder.Build();
 

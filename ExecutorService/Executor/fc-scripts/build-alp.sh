@@ -1,7 +1,7 @@
 #!/bin/bash
 
-sudo rm -rf /tmp/rootfs-alp
-sudo rm -rf alpine-rootfs.ext4
+rm -rf /tmp/rootfs-alp
+rm -rf alpine-rootfs.ext4
 
 #note that seek 192 didn't work so I feel that 256 may be optimal
 
@@ -11,34 +11,34 @@ mkfs.ext4 alpine-rootfs.ext4
 
 mkdir -p /tmp/rootfs-alp
 
-sudo mount alpine-rootfs.ext4 /tmp/rootfs-alp
+mount alpine-rootfs.ext4 /tmp/rootfs-alp
 
-cd /tmp/rootfs-alp || { sudo umount /tmp/rootfs-alp && exit 1; }
+cd /tmp/rootfs-alp || { umount /tmp/rootfs-alp && exit 1; }
 
-sudo curl -O https://dl-cdn.alpinelinux.org/alpine/v3.21/releases/x86_64/alpine-minirootfs-3.21.3-x86_64.tar.gz
-sudo tar -xpf alpine-minirootfs-3.21.3-x86_64.tar.gz
-sudo rm -rf alpine-minirootfs-3.21.3-x86_64.tar.gz
+curl -O https://dl-cdn.alpinelinux.org/alpine/v3.21/releases/x86_64/alpine-minirootfs-3.21.3-x86_64.tar.gz
+tar -xpf alpine-minirootfs-3.21.3-x86_64.tar.gz
+rm -rf alpine-minirootfs-3.21.3-x86_64.tar.gz
 
 mkdir -p sandbox
 
-sudo curl -o "/tmp/rootfs-alp/sandbox/gson-2.13.1.jar" https://repo1.maven.org/maven2/com/google/code/gson/gson/2.13.1/gson-2.13.1.jar
+curl -o "/tmp/rootfs-alp/sandbox/gson-2.13.1.jar" https://repo1.maven.org/maven2/com/google/code/gson/gson/2.13.1/gson-2.13.1.jar
 
-sudo chmod a-w "/tmp/rootfs-alp/sandbox/gson-2.13.1.jar"
-sudo chmod a+r "/tmp/rootfs-alp/sandbox/gson-2.13.1.jar"
+chmod a-w "/tmp/rootfs-alp/sandbox/gson-2.13.1.jar"
+chmod a+r "/tmp/rootfs-alp/sandbox/gson-2.13.1.jar"
 
-sudo cp /etc/resolv.conf /tmp/rootfs-alp/etc/resolv.conf
+cp /etc/resolv.conf /tmp/rootfs-alp/etc/resolv.conf
 
 cat > "/tmp/rootfs-alp/etc/apk/repositories" << EOF
 http://dl-cdn.alpinelinux.org/alpine/v3.21/main
 http://dl-cdn.alpinelinux.org/alpine/v3.21/community
 EOF
 
-sudo mount -t proc proc proc/
-sudo mount -t sysfs sys sys/
-sudo mount -o bind /dev dev/
-sudo mount -o bind /dev/pts dev/pts/
+mount -t proc proc proc/
+mount -t sysfs sys sys/
+mount -o bind /dev dev/
+mount -o bind /dev/pts dev/pts/
 
-sudo chroot /tmp/rootfs-alp /bin/sh << 'EOF'
+chroot /tmp/rootfs-alp /bin/sh << 'EOF'
 apk update
 apk add openjdk17-jre-headless coreutils openrc mdevd
 
@@ -91,16 +91,10 @@ tty6::respawn:/sbin/getty 38400 tty6
 
 EOF
 
+cd ~ || cd / || exit 1 
 
-cleanup(){
-  sudo umount /tmp/rootfs-alp/dev/pts
-  sudo umount /tmp/rootfs-alp/dev
-  sudo umount /tmp/rootfs-alp/proc
-  sudo umount /tmp/rootfs-alp/sys
-  sudo umount /tmp/rootfs-alp
-}
-
-cd ~ || cd / || { cleanup && exit 1 }
-
-
-cleanup
+umount /tmp/rootfs-alp/dev/pts
+umount /tmp/rootfs-alp/dev
+umount /tmp/rootfs-alp/proc
+umount /tmp/rootfs-alp/sys
+umount /tmp/rootfs-alp

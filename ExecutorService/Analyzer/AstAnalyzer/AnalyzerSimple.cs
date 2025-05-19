@@ -16,7 +16,7 @@ public class AnalyzerSimple : IAnalyzer
     private readonly AstNodeProgram _userProgramRoot;
     private readonly AstNodeProgram? _templateProgramRoot;
     
-    private AstNodeClassMemberFunc _baselineMainSignature = new()
+    private readonly AstNodeClassMemberFunc _baselineMainSignature = new()
     {
         AccessModifier = AccessModifier.Public,
         Modifiers = [MemberModifier.Static],
@@ -24,7 +24,7 @@ public class AnalyzerSimple : IAnalyzer
         Identifier = new Token(TokenType.Ident, 0, "main"),
         FuncArgs =
         [
-            new AstNodeScopeMemberVar()
+            new AstNodeScopeMemberVar
             {
                 Type = new ArrayType { BaseType = MemberType.String, Dim = 1 },
                 Identifier = new Token(TokenType.Ident, 0, "args")

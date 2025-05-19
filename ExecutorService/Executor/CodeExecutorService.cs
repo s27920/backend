@@ -5,6 +5,7 @@ using System.Text.Json;
 using ExecutorService.Analyzer._AnalyzerUtils;
 using ExecutorService.Analyzer.AstAnalyzer;
 using ExecutorService.Executor._ExecutorUtils;
+using ExecutorService.Executor.Configs;
 
 namespace ExecutorService.Executor;
 
@@ -15,9 +16,13 @@ public interface ICodeExecutorService
 }
 
 
-public class CodeExecutorService(IExecutorRepository executorRepository, IExecutorConfig executorConfig) : ICodeExecutorService
+public class CodeExecutorService(
+    IExecutorRepository executorRepository,
+    IExecutorConfig executorConfig,
+    ICompilationHandler compilationHandler
+    ) : ICodeExecutorService
 {
-    private const string JavaImport = "import com.google.gson.Gson;\n\n"; //TODO this is temporary, not the gson but the way it's imported
+    private const string JavaImport = "import com.google.gson.Gson;\n\n"; // TODO this is temporary, not the gson but the way it's imported
 
     private IAnalyzer? _analyzer;
     private CodeAnalysisResult? _codeAnalysisResult;
@@ -44,13 +49,13 @@ public class CodeExecutorService(IExecutorRepository executorRepository, IExecut
             return new ExecuteResultDto("", "critical function signature modified. Exiting.");
         }
         
-        if (_codeAnalysisResult.MainMethodIndices is not null)
+        if (_codeAnalysisResult.MainMethodIndices != null)
         {
             await InsertTestCases(fileData, _codeAnalysisResult.MainMethodIndices.MethodFileEndIndex);
         }
         else
         {
-            //TODO temporary solution I'd like to insert a main if it's not found to test either way
+            // TODO temporary solution I'd like to insert a main if it's not found to test either way
             return new ExecuteResultDto("", "no main found. Exiting");
         }
 
@@ -78,52 +83,46 @@ public class CodeExecutorService(IExecutorRepository executorRepository, IExecut
     }
 
     
-    //TODO add better error handling here
+    // TODO add better error handling here
     private async Task<ExecuteResultDto> Exec(UserSolutionData userSolutionData)
     {
-        byte[] codeBytes = Encoding.UTF8.GetBytes(userSolutionData.FileContents.ToString());
-        string codeB64 = Convert.ToBase64String(codeBytes);
+        var responseBytes = await CompileCode(userSolutionData);
+        await File.WriteAllBytesAsync($"/tmp/{userSolutionData.ExecutionId}.class", responseBytes);
 
-        // TODO Make this reuse http clients
-        HttpClient client = new();
-        client.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
+        await BuildCopyFs(userSolutionData);
+        
+        return await DispatchExecutorVm(userSolutionData);
+    }
 
-        var requestDto = new CompileRequestDto(codeB64, _codeAnalysisResult!.MainClassName);
-        var jsonContent = new StringContent(
-            JsonSerializer.Serialize(requestDto),
-            Encoding.UTF8,
-            "application/json"
-        );
-        // TODO add polly fallback policy
-
-        var response = await client.PostAsync(CompilerServiceUrl, jsonContent);
-        byte[] responseDto = await response.Content.ReadAsByteArrayAsync();
+    private async Task<byte[]> CompileCode(UserSolutionData userSolutionData)
+    {
+        var codeBytes = Encoding.UTF8.GetBytes(userSolutionData.FileContents.ToString());
+        var codeB64 = Convert.ToBase64String(codeBytes);
         
-        if (responseDto is null)
-        {
-            throw new JavaSyntaxException("Probably compilation failed ig");
-        }
-        
-        await File.WriteAllBytesAsync($"/tmp/{userSolutionData.ExecutionId}.class", responseDto);
-        
+        return await compilationHandler.CompileAsync(codeB64, _codeAnalysisResult!.MainClassName);
+    }
+    
+    private async Task BuildCopyFs(UserSolutionData userSolutionData)
+    {
         var buildProcess = new Process
         {
             StartInfo = new ProcessStartInfo
             {
                 FileName = "/bin/bash",
-                Arguments = $"/app/fc-scripts/build-copy.sh \"{_codeAnalysisResult.MainClassName}\" \"{userSolutionData.ExecutionId}\" \"{userSolutionData.SigningKey}\"", 
+                Arguments = $"/app/fc-scripts/build-copy.sh \"{_codeAnalysisResult!.MainClassName}\" \"{userSolutionData.ExecutionId}\" \"{userSolutionData.SigningKey}\"", 
                 RedirectStandardError = true,
                 RedirectStandardOutput = true,
                 RedirectStandardInput = true,
                 CreateNoWindow = true
             }
         };
-       
         
         buildProcess.Start();
         await buildProcess.WaitForExitAsync();
-        // TODO add success or failure check
+    }
 
+    private async Task<ExecuteResultDto> DispatchExecutorVm(UserSolutionData userSolutionData)
+    {
         var execProcess = new Process
         {
             StartInfo = new ProcessStartInfo
@@ -139,28 +138,35 @@ public class CodeExecutorService(IExecutorRepository executorRepository, IExecut
 
         execProcess.Start();
         await execProcess.WaitForExitAsync();
-        
+
+        ExecuteResultDto executeResult = new();
         try
         {
-            var output = await File.ReadAllTextAsync($"/tmp/{userSolutionData.ExecutionId}-OUT-LOG.log");
-            var answ = await File.ReadAllTextAsync($"/tmp/{userSolutionData.ExecutionId}-ANSW-LOG.log");
-            Console.WriteLine($"output: {output}");
-            Console.WriteLine($"testing: {answ}");
-            return new ExecuteResultDto(output, answ);
+            executeResult.StdOutput = await File.ReadAllTextAsync($"/tmp/{userSolutionData.ExecutionId}-OUT-LOG.log");
         }
-        catch ( FileNotFoundException ex)
+        catch (FileNotFoundException ex)
         {
-            
+            // TODO handle this
         }
-        return new ExecuteResultDto("No File Found", "");
+        try
+        {
+            executeResult.TestResults = await File.ReadAllTextAsync($"/tmp/{userSolutionData.ExecutionId}-ANSW-LOG.log");
+        }
+        catch (FileNotFoundException e)
+        {
+            // TODO handle this
+        }
+
+        return executeResult;
+
     }
-
-    private async Task<UserSolutionData> PrepareFile(string codeB64, Language lang, string exerciseId) //TODO Make the import not constant
+    
+    private async Task<UserSolutionData> PrepareFile(string codeB64, Language lang, string exerciseId) // TODO Make the import not constant
     {
-        byte[] codeBytes = Convert.FromBase64String(codeB64);
-        string codeString = Encoding.UTF8.GetString(codeBytes);
+        var codeBytes = Convert.FromBase64String(codeB64);
+        var codeString = Encoding.UTF8.GetString(codeBytes);
 
-        StringBuilder code = new StringBuilder(codeString);
+        var code = new StringBuilder(codeString);
         
         var fileData = new UserSolutionData(Guid.NewGuid(), Guid.NewGuid().ToString(), lang, await executorRepository.GetFuncName(), code, exerciseId);
         code.Insert(0, JavaImport);
@@ -170,11 +176,10 @@ public class CodeExecutorService(IExecutorRepository executorRepository, IExecut
 
     private async Task InsertTestCases(UserSolutionData userSolutionData, int writeOffset)
     {
-        TestCase[] testCases = await executorRepository.GetTestCasesAsync();
+        var testCases = await executorRepository.GetTestCasesAsync();
         
-        StringBuilder testCaseInsertBuilder = new StringBuilder();
+        var testCaseInsertBuilder = new StringBuilder();
         testCaseInsertBuilder.Append("Gson gson = new Gson();\n");
-
         foreach (var testCase in testCases)
         {
             string comparingStatement = $"System.out.println(\"ctr-[{userSolutionData.SigningKey}]-ans: \" + gson.toJson({testCase.ExpectedOutput}).equals(gson.toJson(sortIntArr({testCase.TestInput}))));\n";

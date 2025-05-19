@@ -4,7 +4,6 @@ CLASSNAME="$1"
 EXEC_ID="$2"
 SIGNING_KEY="$3"
 
-
 ROOTFS_DIR="/tmp/$EXEC_ID-rootfs"
 ROOTFS="/tmp/$EXEC_ID-rootfs.ext4"
 
@@ -18,7 +17,7 @@ cat > "$ROOTFS_DIR/sandbox/run.sh" << EOF
 #!/bin/sh
 cd /sandbox
 
-java -cp ".:gson-2.13.1.jar" $CLASSNAME > /dev/ttyS0 2>&1
+time java -cp ".:gson-2.13.1.jar" $CLASSNAME > /dev/ttyS0 2>&1
 sync
 
 echo 1 > /proc/sys/kernel/sysrq

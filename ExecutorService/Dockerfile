@@ -22,9 +22,10 @@ WORKDIR /app
 COPY --from=publish /app/publish .
 
 COPY Executor/fc-scripts fc-scripts
+COPY Executor/app-scripts app-scripts
+COPY entrypoint.sh .
 
 RUN apt-get update && \
-#    debootstrap \
     apt-get install -y --no-install-recommends \
     curl \
     wget \
@@ -38,6 +39,7 @@ RUN apt-get update && \
     qemu-kvm \
     libvirt-daemon-system \
     libvirt-clients \
+    netcat-openbsd \
     bash && \
     apt-get clean && \
     wget https://github.com/firecracker-microvm/firecracker/releases/download/v1.2.0/firecracker-v1.2.0-x86_64.tgz && \
@@ -50,8 +52,8 @@ RUN apt-get update && \
     rm -rf release-v1.2.0-x86_64 && \
     echo '/usr/local/bin/firecracker-v1.2.0-x86_64' >> ~/.bashrc && \
     chmod +x fc-scripts/build-copy.sh && \
-    chmod +x fc-scripts/java-exec.sh && \
-    chmod +x fc-scripts/build-base.sh 
-# it is ill advised to attempt to run build-base.sh on the container, instead execute on host and copy pre-made base filesystem image
-
-ENTRYPOINT ["dotnet", "ExecutorService.dll"]
+    chmod +x fc-scripts/java-exec.sh  && \
+    chmod +x fc-scripts/build-alp.sh && \
+    chmod +x /app/entrypoint.sh
+    
+ENTRYPOINT ["/app/entrypoint.sh"]

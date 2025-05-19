@@ -1,6 +1,6 @@
 using ExecutorService.Executor._ExecutorUtils;
 
-namespace ExecutorService.Executor;
+namespace ExecutorService.Executor.Configs;
 
 public interface IExecutorConfig
 {
