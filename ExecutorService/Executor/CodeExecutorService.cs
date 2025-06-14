@@ -150,7 +150,8 @@ public class CodeExecutorService(
         }
         try
         {
-            executeResult.TestResults = await File.ReadAllTextAsync($"/tmp/{userSolutionData.ExecutionId}-ANSW-LOG.log");
+            var testResults = await File.ReadAllTextAsync($"/tmp/{userSolutionData.ExecutionId}-ANSW-LOG.log");
+            executeResult.TestResults = testResults.Replace($"ctr-{userSolutionData.SigningKey}-ans: ", ""); // TODO could move this to the bash script ig
         }
         catch (FileNotFoundException e)
         {
@@ -182,7 +183,7 @@ public class CodeExecutorService(
         testCaseInsertBuilder.Append("Gson gson = new Gson();\n");
         foreach (var testCase in testCases)
         {
-            string comparingStatement = $"System.out.println(\"ctr-[{userSolutionData.SigningKey}]-ans: \" + gson.toJson({testCase.ExpectedOutput}).equals(gson.toJson(sortIntArr({testCase.TestInput}))));\n";
+            var comparingStatement = $"System.out.println(\"ctr-{userSolutionData.SigningKey}-ans: \" + gson.toJson({testCase.ExpectedOutput}).equals(gson.toJson(sortIntArr({testCase.TestInput}))));\n";
             testCaseInsertBuilder.Append(comparingStatement);
         }
         

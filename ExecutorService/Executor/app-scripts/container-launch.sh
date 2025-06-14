@@ -7,12 +7,13 @@ HOST="172.21.40.155"
 
 for i in $(seq 0 $(($CONTAINER_COUNT-1)));
 do
+  echo $i
   PORT=$(($BASE_PORT+$i))
   if [ $( docker ps | grep -c ":::$PORT->$BASE_PORT/tcp" ) -gt 0 ]; then
     docker kill $(docker ps | grep ":::$PORT->$BASE_PORT/tcp" | cut -d ' ' -f1)
     echo "killed: $PORT"
   fi
-  docker run -p $PORT:$BASE_PORT compiler & disown 
+  docker run -p $PORT:$BASE_PORT compiler 1>/dev/null & disown 
 done
 
 CONTINUE_FLAG=0

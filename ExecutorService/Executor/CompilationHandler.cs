@@ -5,6 +5,7 @@ using System.Text.Json;
 using System.Threading.Channels;
 using ExecutorService.Executor._ExecutorUtils;
 using ExecutorService.Executor.Configs;
+using ExecutorService.Executor.Types;
 
 namespace ExecutorService.Executor;
 
@@ -140,7 +141,6 @@ public sealed class CompilationHandler : ICompilationHandler, IDisposable
 
     public void Dispose()
     {
-        Console.WriteLine("Shutting down compile cluster");
         var cleanupProcess = new Process
         {
             StartInfo = new ProcessStartInfo
@@ -154,11 +154,4 @@ public sealed class CompilationHandler : ICompilationHandler, IDisposable
         cleanupProcess.Start();
         cleanupProcess.WaitForExit();
     }
-}
-
-public class CompileTask(string code, string classname, TaskCompletionSource<byte[]> tcs)
-{
-    public string Code => code;
-    public string ClassName => classname;
-    public TaskCompletionSource<byte[]> Tcs => tcs;
 }

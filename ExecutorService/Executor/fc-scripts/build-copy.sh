@@ -20,10 +20,11 @@ cd /sandbox
 time java -cp ".:gson-2.13.1.jar" $CLASSNAME > /dev/ttyS0 2>&1
 sync
 
+echo "ctr-${SIGNING_KEY}-pof" > /dev/ttyS0 2>&1
+
 echo 1 > /proc/sys/kernel/sysrq
 echo c > /proc/sysrq-trigger
 
-#echo "ctr-${SIGNING_KEY}-pof" > /dev/ttyS0 2>&1
 
 EOF
 
