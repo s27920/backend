@@ -70,7 +70,7 @@ public sealed class CompilationHandler : ICompilationHandler, IDisposable
             
             try
             {
-                var request = new HttpRequestMessage(HttpMethod.Post, $"http://172.21.40.155:{port}/compile")
+                var request = new HttpRequestMessage(HttpMethod.Post, $"http://{Environment.GetEnvironmentVariable("HOST_NAME")}:{port}/compile")
                 {
                     Content = new StringContent(
                         JsonSerializer.Serialize(new CompileRequestDto(task.Code, task.ClassName)),

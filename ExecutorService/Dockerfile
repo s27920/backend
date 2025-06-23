@@ -19,11 +19,6 @@ RUN dotnet publish "ExecutorService.csproj" -c $BUILD_CONFIGURATION -o /app/publ
 FROM base AS final
 USER root
 WORKDIR /app
-COPY --from=publish /app/publish .
-
-COPY Executor/fc-scripts fc-scripts
-COPY Executor/app-scripts app-scripts
-COPY entrypoint.sh .
 
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
@@ -41,16 +36,24 @@ RUN apt-get update && \
     libvirt-clients \
     netcat-openbsd \
     bash && \
-    apt-get clean && \
-    wget https://github.com/firecracker-microvm/firecracker/releases/download/v1.2.0/firecracker-v1.2.0-x86_64.tgz && \
+    apt-get clean
+  
+RUN wget https://github.com/firecracker-microvm/firecracker/releases/download/v1.2.0/firecracker-v1.2.0-x86_64.tgz && \
     tar -xvf firecracker-v1.2.0-x86_64.tgz && \
     mv release-v1.2.0-x86_64/firecracker-v1.2.0-x86_64 /usr/local/bin/ && \
     mkdir -p /app/fc-scripts && \
     wget https://s3.amazonaws.com/spec.ccfc.min/img/quickstart_guide/x86_64/kernels/vmlinux.bin -O /app/fc-scripts/vmlinux.bin && \
     rm -rf firecracker-v1.2.0-x86_64.tgz && \
     rm -rf /var/lib/apt/lists/* && \
-    rm -rf release-v1.2.0-x86_64 && \
-    echo '/usr/local/bin/firecracker-v1.2.0-x86_64' >> ~/.bashrc && \
+    rm -rf release-v1.2.0-x86_64 
+
+COPY --from=publish /app/publish .
+COPY Executor/fc-scripts fc-scripts
+COPY Executor/app-scripts app-scripts
+COPY entrypoint.sh .
+    
+
+RUN    echo '/usr/local/bin/firecracker-v1.2.0-x86_64' >> ~/.bashrc && \
     chmod +x fc-scripts/build-copy.sh && \
     chmod +x fc-scripts/java-exec.sh  && \
     chmod +x fc-scripts/build-alp.sh && \

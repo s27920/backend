@@ -29,6 +29,7 @@ echo c > /proc/sysrq-trigger
 EOF
 
 if [ ! -f "/tmp/$EXEC_ID.class" ]; then
+  echo ".class file not found. Exiting"
   umount "$ROOTFS_DIR"
   exit 1
 fi 

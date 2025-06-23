@@ -3,15 +3,13 @@
 # TODO read these from .env
 CONTAINER_COUNT=5
 BASE_PORT=5137
-HOST="172.21.40.155"
 
 for i in $(seq 0 $(($CONTAINER_COUNT-1)));
 do
-  echo $i
   PORT=$(($BASE_PORT+$i))
-  if [ $( docker ps | grep -c ":::$PORT->$BASE_PORT/tcp" ) -gt 0 ]; then
-    docker kill $(docker ps | grep ":::$PORT->$BASE_PORT/tcp" | cut -d ' ' -f1)
-    echo "killed: $PORT"
+  if [ $( docker ps | grep -c "$PORT->$BASE_PORT/tcp" ) -gt 0 ]; then
+    echo "container found on port: $PORT. shutting down"
+    docker kill $(docker ps | grep "$PORT->$BASE_PORT/tcp" | cut -d ' ' -f1)
   fi
   docker run -p $PORT:$BASE_PORT compiler 1>/dev/null & disown 
 done
@@ -23,11 +21,12 @@ do
   for i in $(seq 0 $(($CONTAINER_COUNT-1)));
   do
     PORT=$(($BASE_PORT+$i))
-    if ! nc -z $HOST $PORT; then
+    if ! nc -z $HOST_NAME $PORT; then
       CONTINUE_FLAG=0
       break
     fi  
   done
+  echo "waiting..."
   sleep 1
 done
 
