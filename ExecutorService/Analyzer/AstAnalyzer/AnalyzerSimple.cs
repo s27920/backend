@@ -1,5 +1,10 @@
-using AnalyzerWip.Analyzer._AnalyzerUtils;
 using AnalyzerWip.Analyzer.AstBuilder;
+using ExecutorService.Analyzer._AnalyzerUtils;
+using ExecutorService.Analyzer._AnalyzerUtils.AstNodes;
+using ExecutorService.Analyzer._AnalyzerUtils.AstNodes.Classes;
+using ExecutorService.Analyzer._AnalyzerUtils.AstNodes.Enums;
+using ExecutorService.Analyzer._AnalyzerUtils.AstNodes.NodeUtils;
+using ExecutorService.Analyzer._AnalyzerUtils.AstNodes.Statements;
 
 namespace AnalyzerWip.Analyzer.AstAnalyzer;
 
@@ -13,7 +18,9 @@ public class AnalyzerSimple : IAnalyzer
 {
     private readonly ILexer _lexerSimple;
     private readonly IParser _parserSimple;
+
     private readonly AstNodeProgram _userProgramRoot;
+    // private readonly AstNodeProgram _userProgramRoot;
     private readonly AstNodeProgram? _templateProgramRoot;
     
     private readonly AstNodeClassMemberFunc _baselineMainSignature = new()
@@ -38,6 +45,7 @@ public class AnalyzerSimple : IAnalyzer
         _parserSimple = new ParserSimple();
         
         _userProgramRoot = _parserSimple.ParseProgram(_lexerSimple.Tokenize(fileContents));
+        
     }
 
     public AnalyzerSimple(string fileContents, string templateContents)
@@ -103,7 +111,8 @@ public class AnalyzerSimple : IAnalyzer
                 {
                     classMember.ClassMember.Switch(
                         t0 => foundMatch = FindAndCompareFunc(t0, _userProgramRoot) != null,
-                        _ => { }
+                        t1 => { },
+                        t2 => { }
                     );
                     if (foundMatch)
                     {

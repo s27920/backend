@@ -1,5 +1,10 @@
 using System.Text;
-using AnalyzerWip.Analyzer._AnalyzerUtils;
+using ExecutorService.Analyzer._AnalyzerUtils;
+using ExecutorService.Analyzer._AnalyzerUtils.AstNodes;
+using ExecutorService.Analyzer._AnalyzerUtils.AstNodes.Classes;
+using ExecutorService.Analyzer._AnalyzerUtils.AstNodes.Enums;
+using ExecutorService.Analyzer._AnalyzerUtils.AstNodes.NodeUtils;
+using ExecutorService.Analyzer._AnalyzerUtils.AstNodes.Statements;
 using OneOf;
 
 namespace AnalyzerWip.Analyzer.AstBuilder;
@@ -19,6 +24,15 @@ public class ParserSimple : IParser
         TokenType.Byte, TokenType.Short, TokenType.Int, TokenType.Long,
         TokenType.Float, TokenType.Double, TokenType.Char,
         TokenType.Boolean, TokenType.String
+    ];    
+    private static readonly HashSet<TokenType> Modifiers =
+    [
+        TokenType.Final, TokenType.Static
+    ];
+
+    private static readonly HashSet<TokenType> TopLevelStatements =
+    [
+        TokenType.Class, TokenType.Import, TokenType.Package
     ];
 
     public AstNodeProgram ParseProgram(List<Token> tokens)
@@ -38,34 +52,39 @@ public class ParserSimple : IParser
     {
         int lookahead = 0;
         Token? peekedToken = PeekToken(); //I know double null check here on iter 0, might clean this up later, no clean idea for it now
-        while (peekedToken is not null && !(peekedToken.Type == TokenType.Import || peekedToken.Type == TokenType.Package || peekedToken.Type == TokenType.Class))
+        while (peekedToken is not null && !TopLevelStatements.Contains(peekedToken.Type))
         {
             peekedToken = PeekToken(++lookahead);
         }
+
+        Console.WriteLine(PeekToken(lookahead)!.Type);
         return PeekToken(lookahead)!.Type switch
         {
             TokenType.Import => ParseTopLevelStat(),
             TokenType.Package => ParseTopLevelStat(),
-            TokenType.Class => ParseClass(),
+            TokenType.Class => ParseClass([MemberModifier.Final]),
             _ => throw new ArgumentOutOfRangeException()
         };
     }
 
-    private AstNodeClass ParseClass()
+    private AstNodeClass ParseClass(MemberModifier[] legalModifiers) // perhaps should not focus on grammatical correctness immediately but this is fairly low hanging fruit
     {
-        AccessModifier? accessModifier = TokenIsAccessModifier(PeekToken());
         AstNodeClass nodeClass = new();
+        AccessModifier? accessModifier = TokenIsAccessModifier(PeekToken());
         if (accessModifier != null)
         {
             nodeClass.ClassAccessModifier = accessModifier.Value;
             ConsumeToken();
         }
-        //TODO add parsing for class modifiers like static, final etc.
+        nodeClass.ClassModifiers = ParseModifiers();
         
         ConsumeIfOfType(TokenType.Class, "class");
-        nodeClass.Identifier = ConsumeIfOfType(TokenType.Ident, "class name"); //again no, but thanks rider
-        nodeClass.ClassScope = ParseClassScope();
+        Console.WriteLine("huh");
+        // Environment.Exit(0);
 
+        nodeClass.Identifier = ConsumeIfOfType(TokenType.Ident, "class name");
+        Console.WriteLine($"parsing class: {nodeClass.Identifier.Value}");
+        nodeClass.ClassScope = ParseClassScope();
         return nodeClass;
     }
 
@@ -183,8 +202,12 @@ public class ParserSimple : IParser
     {
         List<MemberModifier> modifiers = new();
         
-        
-        while (!(TokenIsType(PeekToken()) || CheckTokenType(TokenType.OpenChevron))) // checking this by type seems suboptimal
+        /*
+         * If token is Type it is a non generic method
+         * If token is Open chevron it is either generic class or method
+         * If token is ident it is a non generic class
+         */
+        while (PeekToken() != null && Modifiers.Contains(PeekToken().Type)) // checking this by type seems suboptimal
         {
             MemberModifier? modifier;
             if ((modifier = TokenIsModifier(PeekToken())) != null)
@@ -276,6 +299,7 @@ public class ParserSimple : IParser
     private AstNodeClassMember ParseClassMember()
     {
         int forwardOffset = 0;
+        // Console.WriteLine("parsing member");
         /*
          * workaround to generic idents being caught as function names. Probably a better way to do it
          * looks forward until an identifier token is found, when that happens it verifies whether the succeeding token is a
@@ -283,13 +307,10 @@ public class ParserSimple : IParser
          * - assignment or semicolon - "=" or ";" we parse for variable declaration
          * - open curly brace - "{" we parse for inline class declaration
          **/
-        while (!(CheckTokenType(TokenType.Ident, forwardOffset) &&
-                 (CheckTokenType(TokenType.OpenParen, forwardOffset + 1) || CheckTokenType(TokenType.Assign, forwardOffset + 1) || CheckTokenType(TokenType.Semi, forwardOffset + 1) || CheckTokenType(TokenType.OpenBrace, forwardOffset + 1)))) 
+        while (!(CheckTokenType(TokenType.Ident, forwardOffset) && (CheckTokenType(TokenType.OpenParen, forwardOffset + 1) || CheckTokenType(TokenType.Assign, forwardOffset + 1) || CheckTokenType(TokenType.Semi, forwardOffset + 1) || CheckTokenType(TokenType.OpenCurly, forwardOffset + 1)))) 
         {
             forwardOffset++;
         }
-
-
         AstNodeClassMember classMember = new();
         if (CheckTokenType(TokenType.Assign, forwardOffset+1) || CheckTokenType(TokenType.Semi, forwardOffset+1)) //variable declaration
         {
@@ -298,6 +319,10 @@ public class ParserSimple : IParser
         else if (CheckTokenType(TokenType.OpenParen, forwardOffset+1)) //function declaration
         {
             classMember.ClassMember = ParseMemberFunctionDeclaration();
+        }
+        else if (CheckTokenType(TokenType.OpenCurly, forwardOffset+1))
+        {
+            classMember.ClassMember = ParseClass([MemberModifier.Final, MemberModifier.Static]);
         }
 
         return classMember;

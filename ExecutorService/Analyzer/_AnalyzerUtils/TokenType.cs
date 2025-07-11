@@ -1,4 +1,4 @@
-namespace AnalyzerWip.Analyzer._AnalyzerUtils;
+namespace ExecutorService.Analyzer._AnalyzerUtils;
 
 public enum TokenType
 {
