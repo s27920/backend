@@ -1,6 +1,6 @@
 using OneOf;
 
-namespace ExecutorService.Analyzer._AnalyzerUtils;
+namespace AnalyzerWip.Analyzer._AnalyzerUtils;
 
 public enum MemberType
 {
@@ -82,7 +82,8 @@ public class AstNodeClassMemberFunc
 {
     public AccessModifier AccessModifier { get; set; } = AccessModifier.Public;
     public List<MemberModifier> Modifiers { get; set; } = new List<MemberModifier>();
-    public OneOf<MemberType,SpecialMemberType, ArrayType>? FuncReturnType { get; set; }
+    public List<Token> GenericTypes { get; set; } = new(); // TODO Idk if tokens here are super optimal, probably should wrap them in some customType node
+    public OneOf<MemberType,SpecialMemberType, ArrayType, Token>? FuncReturnType { get; set; } // same here
     public Token? Identifier { get; set; }
     public List<AstNodeScopeMemberVar> FuncArgs { get; set; } = new List<AstNodeScopeMemberVar>();
     public AstNodeStatementScope? FuncScope { get; set; }
@@ -97,7 +98,7 @@ public class AstNodeClassMemberVar
 public class AstNodeScopeMemberVar
 {
     public List<MemberModifier>? VarModifiers { get; set; }
-    public OneOf<MemberType, ArrayType> Type { get; set; }
+    public OneOf<MemberType, ArrayType, Token> Type { get; set; }
     public Token? Identifier { get; set; }
     public Token? LitValue { get; set; }
 }

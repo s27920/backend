@@ -1,8 +1,8 @@
 using System.Text;
-using ExecutorService.Analyzer._AnalyzerUtils;
+using AnalyzerWip.Analyzer._AnalyzerUtils;
 using OneOf;
 
-namespace ExecutorService.Analyzer.AstBuilder;
+namespace AnalyzerWip.Analyzer.AstBuilder;
 
 public interface IParser
 {
@@ -112,28 +112,6 @@ public class ParserSimple : IParser
         return classScope;
     }
 
-    private AstNodeClassMember ParseClassMember()
-    {
-        int forwardOffset = 0;
-        while (!CheckTokenType(TokenType.Ident, forwardOffset))
-        {
-            forwardOffset++;
-        }
-
-        AstNodeClassMember classMember = new();
-        if (CheckTokenType(TokenType.Assign, forwardOffset+1) || CheckTokenType(TokenType.Semi, forwardOffset+1)) //variable declaration
-        {
-            classMember.ClassMember = ParseMemberVariableDeclaration();
-        }
-        else if (CheckTokenType(TokenType.OpenParen, forwardOffset+1)) //function declaration
-        {
-
-            classMember.ClassMember = ParseMemberFunctionDeclaration();
-        }
-
-        return classMember;
-    }
-    
     private AstNodeClassMemberFunc ParseMemberFunctionDeclaration()
     {
         AstNodeClassMemberFunc memberFunc = new();
@@ -146,42 +124,67 @@ public class ParserSimple : IParser
 
         memberFunc.Modifiers = ParseModifiers();
 
-        OneOf<MemberType,SpecialMemberType, ArrayType>? type = ParseType();
+        ParseGenericDeclaration(memberFunc);
 
-        if (type == null)
-        {
-            throw new JavaSyntaxException("return type required");
-        }
-
-        memberFunc.FuncReturnType = type.Value;
+        ParseMemberFuncReturnType(memberFunc);
 
         memberFunc.Identifier = ConsumeIfOfType(TokenType.Ident, "identifier");
 
+        ParseMemberFunctionArguments(memberFunc);
+        
+        memberFunc.FuncScope = ParseStatementScope();
+        return memberFunc;
+    }
+
+    private void ParseMemberFunctionArguments(AstNodeClassMemberFunc memberFunc)
+    {
         ConsumeIfOfType(TokenType.OpenParen, "'('");
         List<AstNodeScopeMemberVar> funcArguments = new();
 
         while (!CheckTokenType(TokenType.CloseParen))
         {
-            funcArguments.Add(ParseScopeMemberVariableDeclaration([MemberModifier.Final]));
+            if (CheckTokenType(TokenType.Ident) || CheckTokenType(TokenType.Ident, 1)) // this is not great
+            {
+                AstNodeScopeMemberVar genericArgument = new AstNodeScopeMemberVar();
+                if (CheckTokenType(TokenType.Final))
+                {
+                    genericArgument.VarModifiers = new List<MemberModifier>([MemberModifier.Final]);
+                    ConsumeToken();
+                }
+                
+                genericArgument.Type = ConsumeToken();
+                genericArgument.Identifier = ConsumeIfOfType(TokenType.Ident, "identifier");
+                funcArguments.Add(genericArgument);
+            }
+            else
+            {
+                funcArguments.Add(ParseScopeMemberVariableDeclaration([MemberModifier.Final]));
+            }
+            
             if (CheckTokenType(TokenType.Comma))
             {
                 ConsumeToken();
+            }else if (CheckTokenType(TokenType.CloseParen))
+            {
+                ConsumeToken();
+                memberFunc.FuncArgs = funcArguments;
+                return;
+            }
+            else
+            {
+                Console.WriteLine(PeekToken().Type);
+                Console.WriteLine(PeekToken()!.Value);
+                throw new JavaSyntaxException("unexpected token");
             }
         }
-
-        memberFunc.FuncArgs = funcArguments;
-
-        ConsumeIfOfType(TokenType.CloseParen, "')'");
-
-
-        memberFunc.FuncScope = ParseStatementScope();
-        return memberFunc;
     }
 
     private List<MemberModifier> ParseModifiers()
     {
         List<MemberModifier> modifiers = new();
-        while (!TokenIsType(PeekToken()))
+        
+        
+        while (!(TokenIsType(PeekToken()) || CheckTokenType(TokenType.OpenChevron))) // checking this by type seems suboptimal
         {
             MemberModifier? modifier;
             if ((modifier = TokenIsModifier(PeekToken())) != null)
@@ -189,9 +192,37 @@ public class ParserSimple : IParser
                 modifiers.Add(modifier.Value);
                 ConsumeToken();
             }
+
+        }
+        
+        return modifiers;
+    }
+
+    private void ParseGenericDeclaration(AstNodeClassMemberFunc memberFunc)
+    {
+        if (!CheckTokenType(TokenType.OpenChevron))
+        {
+            return;
         }
 
-        return modifiers;
+        ConsumeToken();
+        List<Token> genericTypes = new();
+        while (!CheckTokenType(TokenType.CloseChevron)) // redundant but I don't wanna do a while(true)
+        {
+            if (CheckTokenType(TokenType.Ident))
+            {
+                genericTypes.Add( ConsumeToken());
+                if (CheckTokenType(TokenType.Comma))
+                {
+                    ConsumeToken();
+                }else if (CheckTokenType(TokenType.CloseChevron))
+                {
+                    memberFunc.GenericTypes = genericTypes;
+                    ConsumeToken();
+                    return;
+                }
+            }
+        }
     }
 
     private AstNodeScopeMemberVar ParseScopeMemberVariableDeclaration(MemberModifier[] permittedModifiers)
@@ -240,6 +271,36 @@ public class ParserSimple : IParser
             ConsumeToken(); 
         }
         return scopedVar;
+    }
+
+    private AstNodeClassMember ParseClassMember()
+    {
+        int forwardOffset = 0;
+        /*
+         * workaround to generic idents being caught as function names. Probably a better way to do it
+         * looks forward until an identifier token is found, when that happens it verifies whether the succeeding token is a
+         * - open parentheses - "(" - we parse for a method
+         * - assignment or semicolon - "=" or ";" we parse for variable declaration
+         * - open curly brace - "{" we parse for inline class declaration
+         **/
+        while (!(CheckTokenType(TokenType.Ident, forwardOffset) &&
+                 (CheckTokenType(TokenType.OpenParen, forwardOffset + 1) || CheckTokenType(TokenType.Assign, forwardOffset + 1) || CheckTokenType(TokenType.Semi, forwardOffset + 1) || CheckTokenType(TokenType.OpenBrace, forwardOffset + 1)))) 
+        {
+            forwardOffset++;
+        }
+
+
+        AstNodeClassMember classMember = new();
+        if (CheckTokenType(TokenType.Assign, forwardOffset+1) || CheckTokenType(TokenType.Semi, forwardOffset+1)) //variable declaration
+        {
+            classMember.ClassMember = ParseMemberVariableDeclaration();
+        }
+        else if (CheckTokenType(TokenType.OpenParen, forwardOffset+1)) //function declaration
+        {
+            classMember.ClassMember = ParseMemberFunctionDeclaration();
+        }
+
+        return classMember;
     }
 
     private AstNodeClassMemberVar ParseMemberVariableDeclaration()
@@ -400,6 +461,32 @@ public class ParserSimple : IParser
 
     }
 
+    private void ParseMemberFuncReturnType(AstNodeClassMemberFunc memberFunc)
+    {
+        if (CheckTokenType(TokenType.Ident))
+        {
+            if (memberFunc.GenericTypes.Find(t => t.Value == PeekToken()!.Value) != null)
+            {
+                memberFunc.FuncReturnType = ConsumeToken();
+            }
+        }
+        else
+        {
+            OneOf<MemberType,SpecialMemberType, ArrayType>? type = ParseType();
+
+            if (type == null)
+            {
+                throw new JavaSyntaxException("return type required");
+            }
+            
+            memberFunc.FuncReturnType = type.Value.Match(
+                t0 => t0,
+                t1 => t1,
+                t2 => (OneOf<MemberType, SpecialMemberType, ArrayType, Token>)t2
+            );
+        }
+    }
+    
     private OneOf<MemberType, SpecialMemberType, ArrayType>? ParseType()
     {
         Token token = TryConsume();

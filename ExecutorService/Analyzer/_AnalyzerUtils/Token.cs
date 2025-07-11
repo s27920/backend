@@ -1,5 +1,5 @@
 
-namespace ExecutorService.Analyzer._AnalyzerUtils;
+namespace AnalyzerWip.Analyzer._AnalyzerUtils;
 
 public class Token(TokenType type, int filePos , string? value = null)
 {

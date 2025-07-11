@@ -1,7 +1,7 @@
 using System.Text;
-using ExecutorService.Analyzer._AnalyzerUtils;
+using AnalyzerWip.Analyzer._AnalyzerUtils;
 
-namespace ExecutorService.Analyzer.AstBuilder;
+namespace AnalyzerWip.Analyzer.AstBuilder;
 
 public interface ILexer
 {
@@ -74,6 +74,12 @@ public class LexerSimple : ILexer
                     break;
                 case '-':
                     _tokens.Add(CreateToken(TokenType.Minus));
+                    break;
+                case '<':
+                    _tokens.Add(CreateToken(TokenType.OpenChevron));
+                    break;
+                case '>':
+                    _tokens.Add(CreateToken(TokenType.CloseChevron));
                     break;
                 default:
                     if (Char.IsNumber(consumedChar))

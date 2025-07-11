@@ -1,7 +1,7 @@
-using ExecutorService.Analyzer._AnalyzerUtils;
-using ExecutorService.Analyzer.AstBuilder;
+using AnalyzerWip.Analyzer._AnalyzerUtils;
+using AnalyzerWip.Analyzer.AstBuilder;
 
-namespace ExecutorService.Analyzer.AstAnalyzer;
+namespace AnalyzerWip.Analyzer.AstAnalyzer;
 
 public interface IAnalyzer
 {
@@ -132,6 +132,8 @@ public class AnalyzerSimple : IAnalyzer
                     .Where(func => func.ClassMember.IsT0 && func.ClassMember.AsT0.Identifier.Value.Equals(baselineFunc.Identifier.Value))
                     .Select(func => func.ClassMember.AsT0)
                     .ToList();
+
+                Console.WriteLine("validation functions\n\n");
                 foreach (var matchedFunction in matchedFunctions)
                 {
                     if (ValidateFunctionSignature(baselineFunc, matchedFunction))
@@ -172,11 +174,11 @@ public class AnalyzerSimple : IAnalyzer
 
         bool isValid = true;
         baseline.FuncReturnType?.Switch(
-            t0 => isValid =  compared.FuncReturnType.Value.IsT0 && t0 == compared.FuncReturnType.Value.AsT0,
-            t1 => isValid = compared.FuncReturnType.Value.IsT1 && t1 == compared.FuncReturnType.Value.AsT1,
+            t0 => isValid =  compared.FuncReturnType!.Value.IsT0 && t0 == compared.FuncReturnType.Value.AsT0,
+            t1 => isValid = compared.FuncReturnType!.Value.IsT1 && t1 == compared.FuncReturnType.Value.AsT1,
             t2 =>
             {
-                if (!compared.FuncReturnType.Value.IsT2)
+                if (!compared.FuncReturnType!.Value.IsT2)
                 {
                     isValid = false;
                 }
@@ -185,8 +187,8 @@ public class AnalyzerSimple : IAnalyzer
                           comparedArray.BaseType.IsT0 &&
                           t2.BaseType.AsT0 == comparedArray.BaseType.AsT0 &&
                           t2.Dim == comparedArray.Dim;
-            }
-            
+            },
+            t3 => isValid = compared.FuncReturnType!.Value.IsT3 &&  compared.FuncReturnType!.Value.AsT3.Value!.Equals(t3.Value)
         );
         if (!isValid)
         {
@@ -203,24 +205,30 @@ public class AnalyzerSimple : IAnalyzer
             return false;
         }
 
+        
         for (int i = 0; i < baseline.FuncArgs.Count; i++)
         {
+            var capturedI = i;
+            
             baseline.FuncArgs[i].Type.Switch(
-                t0 => isValid = compared.FuncArgs[i].Type.IsT0 && compared.FuncArgs[i].Type.AsT0 == t0,
+                t0 => isValid = compared.FuncArgs[capturedI].Type.IsT0 && compared.FuncArgs[capturedI].Type.AsT0 == t0,
                 t1 => {
-                    if (!compared.FuncArgs[i].Type.IsT1)
+                    if (!compared.FuncArgs[capturedI].Type.IsT1)
                     {
                         isValid = false;
                     }
-                    var comparedArray = compared.FuncArgs[i].Type.AsT1;
+                    var comparedArray = compared.FuncArgs[capturedI].Type.AsT1;
                     isValid = t1.BaseType.IsT0 &&
                               comparedArray.BaseType.IsT0 &&
                               t1.BaseType.AsT0 == comparedArray.BaseType.AsT0 &&
                               t1.Dim == comparedArray.Dim;
-                     }
+                     },
+                t2 => isValid = compared.FuncArgs[capturedI].Type.IsT2 && compared.FuncArgs[capturedI].Type.AsT2.Value != null && compared.FuncArgs[capturedI].Type.AsT2.Value!.Equals(t2.Value) && compared.FuncArgs[capturedI].Identifier!.Value!.Equals(baseline.FuncArgs[capturedI].Identifier!.Value)
                 );
+            Console.WriteLine($"valid? {isValid}");
             if (!isValid)
             {
+                
                 return isValid;
             }
         }

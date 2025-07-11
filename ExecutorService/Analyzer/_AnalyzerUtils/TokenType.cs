@@ -1,8 +1,8 @@
-namespace ExecutorService.Analyzer._AnalyzerUtils;
+namespace AnalyzerWip.Analyzer._AnalyzerUtils;
 
 public enum TokenType
 {
-    Ident, OpenCurly, CloseCurly, OpenParen, CloseParen, OpenBrace, CloseBrace,
+    Ident, OpenCurly, CloseCurly, OpenParen, CloseParen, OpenBrace, CloseBrace, OpenChevron, CloseChevron,
 
     Assign, 
 

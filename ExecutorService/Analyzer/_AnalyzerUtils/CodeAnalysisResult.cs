@@ -1,4 +1,4 @@
-namespace ExecutorService.Analyzer._AnalyzerUtils;
+namespace AnalyzerWip.Analyzer._AnalyzerUtils;
 
 public class CodeAnalysisResult(MainMethod? mainMethod, string mainClassname, bool passedValidation)
 {
