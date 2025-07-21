@@ -9,6 +9,7 @@ using WebApplication1.Modules.UserModule.Models;
 using WebApplication1.Modules.AuthModule.Jwt;
 using WebApplication1.Modules.AuthModule.Interfaces;
 using WebApplication1.Modules.AuthModule.Services;
+using WebApplication1.Modules.ProblemModule.Interfaces;
 using WebApplication1.Modules.UserModule.Interfaces;
 using WebApplication1.Modules.UserModule.Services;
 
@@ -85,6 +86,7 @@ builder.Services.AddAuthorization();
 builder.Services.AddScoped<ITokenService, TokenService>();
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<IUserService, UserService>();
+builder.Services.AddScoped<IExecutorService, WebApplication1.Modules.ProblemModule.Services.ExecutorService>();
 
 builder.Services.AddCors(options =>
 {
