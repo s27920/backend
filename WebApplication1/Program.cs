@@ -3,16 +3,23 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
+using Amazon;
+using Amazon.S3;
 using DotNetEnv;
+using Microsoft.Extensions.Options;
 using WebApplication1.DAL;
 using WebApplication1.Modules.UserModule.Models;
 using WebApplication1.Modules.AuthModule.Jwt;
 using WebApplication1.Modules.AuthModule.Interfaces;
 using WebApplication1.Modules.AuthModule.Services;
+using WebApplication1.Modules.ItemModule.Repositories;
+using WebApplication1.Modules.ItemModule.Services;
 using WebApplication1.Modules.ProblemModule.Interfaces;
+using WebApplication1.Modules.ProblemModule.Repositories;
 using WebApplication1.Modules.ProblemModule.Services;
 using WebApplication1.Modules.UserModule.Interfaces;
 using WebApplication1.Modules.UserModule.Services;
+using WebApplication1.Shared.Configs;
 
 Env.Load(); 
 
@@ -84,10 +91,33 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
 
 builder.Services.AddAuthorization();
 
+builder.Services.Configure<S3Settings>(builder.Configuration.GetSection("S3Settings"));
+builder.Services.AddSingleton<IAmazonS3>(sp =>
+{
+    var s3Settings = sp.GetRequiredService<IOptions<S3Settings>>().Value;
+
+    var credentials = new Amazon.Runtime.BasicAWSCredentials(
+        Environment.GetEnvironmentVariable("AWS_ACCESS_KEY_ID"),
+        Environment.GetEnvironmentVariable("AWS_SECRET_ACCESS_KEY")
+    );
+
+    var config = new AmazonS3Config
+    {
+        RegionEndpoint = RegionEndpoint.GetBySystemName(s3Settings.Region)
+    };
+
+    return new AmazonS3Client(credentials, config);
+});
+
 builder.Services.AddScoped<ITokenService, TokenService>();
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<IUserService, UserService>();
+
 builder.Services.AddScoped<IExecutorService, CodeExecutorService>();
+builder.Services.AddScoped<IItemRepository, ItemRepository>();
+builder.Services.AddScoped<IItemService, ItemService>();
+builder.Services.AddScoped<IProblemService, ProblemService>();
+builder.Services.AddScoped<IProblemRepository, ProblemRepository>();
 
 builder.Services.AddCors(options =>
 {
@@ -112,8 +142,8 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI();
 }
 
-app.UseHttpsRedirection();
-app.UseMiddleware<WebApplication1.Shared.Middleware.ErrorHandler>();
+// app.UseHttpsRedirection();
+// app.UseMiddleware<WebApplication1.Shared.Middleware.ErrorHandler>();
 app.UseCors("AllowFrontend");
 app.UseAuthentication();
 app.UseAuthorization();
